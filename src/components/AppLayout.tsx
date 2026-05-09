@@ -37,11 +37,20 @@ const nav = [
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const current = nav.find((n) =>
     n.to === "/" ? location.pathname === "/" : location.pathname.startsWith(n.to),
   );
+  const initials = (user?.user_metadata?.full_name || user?.email || "DR")
+    .split(/[\s@.]/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((s: string) => s[0]?.toUpperCase())
+    .join("");
 
   return (
+    <AuthGate>
     <div className="flex min-h-screen bg-gradient-subtle">
       {/* Sidebar */}
       <aside className="hidden md:flex w-64 flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border sticky top-0 h-screen">
