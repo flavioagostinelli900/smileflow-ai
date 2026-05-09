@@ -14,6 +14,7 @@ import { Route as ReceptionRouteImport } from './routes/reception'
 import { Route as OperatorsRouteImport } from './routes/operators'
 import { Route as MissedCallsRouteImport } from './routes/missed-calls'
 import { Route as LoyaltyRouteImport } from './routes/loyalty'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as FollowupRouteImport } from './routes/followup'
 import { Route as ClientsRouteImport } from './routes/clients'
 import { Route as ChatRouteImport } from './routes/chat'
@@ -43,6 +44,11 @@ const MissedCallsRoute = MissedCallsRouteImport.update({
 const LoyaltyRoute = LoyaltyRouteImport.update({
   id: '/loyalty',
   path: '/loyalty',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FollowupRoute = FollowupRouteImport.update({
@@ -77,6 +83,7 @@ export interface FileRoutesByFullPath {
   '/chat': typeof ChatRoute
   '/clients': typeof ClientsRoute
   '/followup': typeof FollowupRoute
+  '/login': typeof LoginRoute
   '/loyalty': typeof LoyaltyRoute
   '/missed-calls': typeof MissedCallsRoute
   '/operators': typeof OperatorsRoute
@@ -89,6 +96,7 @@ export interface FileRoutesByTo {
   '/chat': typeof ChatRoute
   '/clients': typeof ClientsRoute
   '/followup': typeof FollowupRoute
+  '/login': typeof LoginRoute
   '/loyalty': typeof LoyaltyRoute
   '/missed-calls': typeof MissedCallsRoute
   '/operators': typeof OperatorsRoute
@@ -102,6 +110,7 @@ export interface FileRoutesById {
   '/chat': typeof ChatRoute
   '/clients': typeof ClientsRoute
   '/followup': typeof FollowupRoute
+  '/login': typeof LoginRoute
   '/loyalty': typeof LoyaltyRoute
   '/missed-calls': typeof MissedCallsRoute
   '/operators': typeof OperatorsRoute
@@ -116,6 +125,7 @@ export interface FileRouteTypes {
     | '/chat'
     | '/clients'
     | '/followup'
+    | '/login'
     | '/loyalty'
     | '/missed-calls'
     | '/operators'
@@ -128,6 +138,7 @@ export interface FileRouteTypes {
     | '/chat'
     | '/clients'
     | '/followup'
+    | '/login'
     | '/loyalty'
     | '/missed-calls'
     | '/operators'
@@ -140,6 +151,7 @@ export interface FileRouteTypes {
     | '/chat'
     | '/clients'
     | '/followup'
+    | '/login'
     | '/loyalty'
     | '/missed-calls'
     | '/operators'
@@ -153,6 +165,7 @@ export interface RootRouteChildren {
   ChatRoute: typeof ChatRoute
   ClientsRoute: typeof ClientsRoute
   FollowupRoute: typeof FollowupRoute
+  LoginRoute: typeof LoginRoute
   LoyaltyRoute: typeof LoyaltyRoute
   MissedCallsRoute: typeof MissedCallsRoute
   OperatorsRoute: typeof OperatorsRoute
@@ -195,6 +208,13 @@ declare module '@tanstack/react-router' {
       path: '/loyalty'
       fullPath: '/loyalty'
       preLoaderRoute: typeof LoyaltyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/followup': {
@@ -241,6 +261,7 @@ const rootRouteChildren: RootRouteChildren = {
   ChatRoute: ChatRoute,
   ClientsRoute: ClientsRoute,
   FollowupRoute: FollowupRoute,
+  LoginRoute: LoginRoute,
   LoyaltyRoute: LoyaltyRoute,
   MissedCallsRoute: MissedCallsRoute,
   OperatorsRoute: OperatorsRoute,
@@ -250,3 +271,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
