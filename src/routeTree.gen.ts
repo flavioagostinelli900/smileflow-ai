@@ -9,8 +9,62 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as ReceptionRouteImport } from './routes/reception'
+import { Route as OperatorsRouteImport } from './routes/operators'
+import { Route as MissedCallsRouteImport } from './routes/missed-calls'
+import { Route as LoyaltyRouteImport } from './routes/loyalty'
+import { Route as FollowupRouteImport } from './routes/followup'
+import { Route as ClientsRouteImport } from './routes/clients'
+import { Route as ChatRouteImport } from './routes/chat'
+import { Route as BookingsRouteImport } from './routes/bookings'
 import { Route as IndexRouteImport } from './routes/index'
 
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReceptionRoute = ReceptionRouteImport.update({
+  id: '/reception',
+  path: '/reception',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OperatorsRoute = OperatorsRouteImport.update({
+  id: '/operators',
+  path: '/operators',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MissedCallsRoute = MissedCallsRouteImport.update({
+  id: '/missed-calls',
+  path: '/missed-calls',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoyaltyRoute = LoyaltyRouteImport.update({
+  id: '/loyalty',
+  path: '/loyalty',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FollowupRoute = FollowupRouteImport.update({
+  id: '/followup',
+  path: '/followup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClientsRoute = ClientsRouteImport.update({
+  id: '/clients',
+  path: '/clients',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChatRoute = ChatRouteImport.update({
+  id: '/chat',
+  path: '/chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BookingsRoute = BookingsRouteImport.update({
+  id: '/bookings',
+  path: '/bookings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -19,28 +73,158 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/bookings': typeof BookingsRoute
+  '/chat': typeof ChatRoute
+  '/clients': typeof ClientsRoute
+  '/followup': typeof FollowupRoute
+  '/loyalty': typeof LoyaltyRoute
+  '/missed-calls': typeof MissedCallsRoute
+  '/operators': typeof OperatorsRoute
+  '/reception': typeof ReceptionRoute
+  '/settings': typeof SettingsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/bookings': typeof BookingsRoute
+  '/chat': typeof ChatRoute
+  '/clients': typeof ClientsRoute
+  '/followup': typeof FollowupRoute
+  '/loyalty': typeof LoyaltyRoute
+  '/missed-calls': typeof MissedCallsRoute
+  '/operators': typeof OperatorsRoute
+  '/reception': typeof ReceptionRoute
+  '/settings': typeof SettingsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/bookings': typeof BookingsRoute
+  '/chat': typeof ChatRoute
+  '/clients': typeof ClientsRoute
+  '/followup': typeof FollowupRoute
+  '/loyalty': typeof LoyaltyRoute
+  '/missed-calls': typeof MissedCallsRoute
+  '/operators': typeof OperatorsRoute
+  '/reception': typeof ReceptionRoute
+  '/settings': typeof SettingsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/bookings'
+    | '/chat'
+    | '/clients'
+    | '/followup'
+    | '/loyalty'
+    | '/missed-calls'
+    | '/operators'
+    | '/reception'
+    | '/settings'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/bookings'
+    | '/chat'
+    | '/clients'
+    | '/followup'
+    | '/loyalty'
+    | '/missed-calls'
+    | '/operators'
+    | '/reception'
+    | '/settings'
+  id:
+    | '__root__'
+    | '/'
+    | '/bookings'
+    | '/chat'
+    | '/clients'
+    | '/followup'
+    | '/loyalty'
+    | '/missed-calls'
+    | '/operators'
+    | '/reception'
+    | '/settings'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  BookingsRoute: typeof BookingsRoute
+  ChatRoute: typeof ChatRoute
+  ClientsRoute: typeof ClientsRoute
+  FollowupRoute: typeof FollowupRoute
+  LoyaltyRoute: typeof LoyaltyRoute
+  MissedCallsRoute: typeof MissedCallsRoute
+  OperatorsRoute: typeof OperatorsRoute
+  ReceptionRoute: typeof ReceptionRoute
+  SettingsRoute: typeof SettingsRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reception': {
+      id: '/reception'
+      path: '/reception'
+      fullPath: '/reception'
+      preLoaderRoute: typeof ReceptionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/operators': {
+      id: '/operators'
+      path: '/operators'
+      fullPath: '/operators'
+      preLoaderRoute: typeof OperatorsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/missed-calls': {
+      id: '/missed-calls'
+      path: '/missed-calls'
+      fullPath: '/missed-calls'
+      preLoaderRoute: typeof MissedCallsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/loyalty': {
+      id: '/loyalty'
+      path: '/loyalty'
+      fullPath: '/loyalty'
+      preLoaderRoute: typeof LoyaltyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/followup': {
+      id: '/followup'
+      path: '/followup'
+      fullPath: '/followup'
+      preLoaderRoute: typeof FollowupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/clients': {
+      id: '/clients'
+      path: '/clients'
+      fullPath: '/clients'
+      preLoaderRoute: typeof ClientsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/chat': {
+      id: '/chat'
+      path: '/chat'
+      fullPath: '/chat'
+      preLoaderRoute: typeof ChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/bookings': {
+      id: '/bookings'
+      path: '/bookings'
+      fullPath: '/bookings'
+      preLoaderRoute: typeof BookingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -53,7 +237,26 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  BookingsRoute: BookingsRoute,
+  ChatRoute: ChatRoute,
+  ClientsRoute: ClientsRoute,
+  FollowupRoute: FollowupRoute,
+  LoyaltyRoute: LoyaltyRoute,
+  MissedCallsRoute: MissedCallsRoute,
+  OperatorsRoute: OperatorsRoute,
+  ReceptionRoute: ReceptionRoute,
+  SettingsRoute: SettingsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
