@@ -51,8 +51,8 @@ function Bookings() {
                 <div key={d} className="bg-muted/60 border-b border-r last:border-r-0 p-3 text-center font-medium">{d}</div>
               ))}
               {hours.map((h) => (
-                <>
-                  <div key={h} className="border-b border-r p-3 text-muted-foreground flex items-center gap-1 text-[11px]">
+                <Fragment key={h}>
+                  <div className="border-b border-r p-3 text-muted-foreground flex items-center gap-1 text-[11px]">
                     <Clock className="size-3" />{h}
                   </div>
                   {days.map((d) => {
@@ -68,7 +68,7 @@ function Bookings() {
                       </div>
                     );
                   })}
-                </>
+                </Fragment>
               ))}
             </div>
           </Card>
