@@ -14,7 +14,369 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      appointments: {
+        Row: {
+          client_id: string | null
+          created_at: string
+          duration_minutes: number
+          id: string
+          notes: string | null
+          operator_id: string | null
+          source: string | null
+          starts_at: string
+          status: string
+          visit_type: string
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string
+          duration_minutes?: number
+          id?: string
+          notes?: string | null
+          operator_id?: string | null
+          source?: string | null
+          starts_at: string
+          status?: string
+          visit_type: string
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string
+          duration_minutes?: number
+          id?: string
+          notes?: string | null
+          operator_id?: string | null
+          source?: string | null
+          starts_at?: string
+          status?: string
+          visit_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_operator_id_fkey"
+            columns: ["operator_id"]
+            isOneToOne: false
+            referencedRelation: "operators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clients: {
+        Row: {
+          created_at: string
+          department: string | null
+          email: string | null
+          family_id: string | null
+          first_name: string
+          id: string
+          last_name: string
+          last_visit: string | null
+          notes: string | null
+          operator_id: string | null
+          phone: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          department?: string | null
+          email?: string | null
+          family_id?: string | null
+          first_name: string
+          id?: string
+          last_name: string
+          last_visit?: string | null
+          notes?: string | null
+          operator_id?: string | null
+          phone: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          department?: string | null
+          email?: string | null
+          family_id?: string | null
+          first_name?: string
+          id?: string
+          last_name?: string
+          last_visit?: string | null
+          notes?: string | null
+          operator_id?: string | null
+          phone?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clients_operator_id_fkey"
+            columns: ["operator_id"]
+            isOneToOne: false
+            referencedRelation: "operators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversations: {
+        Row: {
+          assigned_operator_id: string | null
+          channel: string
+          client_id: string | null
+          created_at: string
+          id: string
+          last_message_at: string | null
+          status: string
+        }
+        Insert: {
+          assigned_operator_id?: string | null
+          channel?: string
+          client_id?: string | null
+          created_at?: string
+          id?: string
+          last_message_at?: string | null
+          status?: string
+        }
+        Update: {
+          assigned_operator_id?: string | null
+          channel?: string
+          client_id?: string | null
+          created_at?: string
+          id?: string
+          last_message_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_assigned_operator_id_fkey"
+            columns: ["assigned_operator_id"]
+            isOneToOne: false
+            referencedRelation: "operators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      followup_sequences: {
+        Row: {
+          active: boolean
+          conversion_rate: number | null
+          created_at: string
+          id: string
+          messages_sent: number | null
+          name: string
+          steps: number
+          target: string
+        }
+        Insert: {
+          active?: boolean
+          conversion_rate?: number | null
+          created_at?: string
+          id?: string
+          messages_sent?: number | null
+          name: string
+          steps?: number
+          target: string
+        }
+        Update: {
+          active?: boolean
+          conversion_rate?: number | null
+          created_at?: string
+          id?: string
+          messages_sent?: number | null
+          name?: string
+          steps?: number
+          target?: string
+        }
+        Relationships: []
+      }
+      loyalty_rewards: {
+        Row: {
+          client_id: string | null
+          code: string | null
+          created_at: string
+          description: string | null
+          discount_percent: number | null
+          expires_at: string | null
+          id: string
+          title: string
+          used: boolean | null
+        }
+        Insert: {
+          client_id?: string | null
+          code?: string | null
+          created_at?: string
+          description?: string | null
+          discount_percent?: number | null
+          expires_at?: string | null
+          id?: string
+          title: string
+          used?: boolean | null
+        }
+        Update: {
+          client_id?: string | null
+          code?: string | null
+          created_at?: string
+          description?: string | null
+          discount_percent?: number | null
+          expires_at?: string | null
+          id?: string
+          title?: string
+          used?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loyalty_rewards_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          sender: string
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          sender: string
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          sender?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      missed_calls: {
+        Row: {
+          auto_message_sent: boolean | null
+          called_at: string
+          caller_name: string | null
+          client_id: string | null
+          conversation_id: string | null
+          id: string
+          phone: string
+          status: string
+        }
+        Insert: {
+          auto_message_sent?: boolean | null
+          called_at?: string
+          caller_name?: string | null
+          client_id?: string | null
+          conversation_id?: string | null
+          id?: string
+          phone: string
+          status?: string
+        }
+        Update: {
+          auto_message_sent?: boolean | null
+          called_at?: string
+          caller_name?: string | null
+          client_id?: string | null
+          conversation_id?: string | null
+          id?: string
+          phone?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "missed_calls_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "missed_calls_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      operators: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          departments: string[] | null
+          id: string
+          name: string
+          online: boolean | null
+          role: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          departments?: string[] | null
+          id?: string
+          name: string
+          online?: boolean | null
+          role?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          departments?: string[] | null
+          id?: string
+          name?: string
+          online?: boolean | null
+          role?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          full_name: string | null
+          id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string | null
+          id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
