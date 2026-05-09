@@ -1,4 +1,8 @@
-import { Link, useLocation } from "@tanstack/react-router";
+import { Link, useLocation, useNavigate } from "@tanstack/react-router";
+import { AuthGate } from "@/components/AuthGate";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/useAuth";
+import { LogOut } from "lucide-react";
 import {
   LayoutDashboard,
   Users,
@@ -33,11 +37,20 @@ const nav = [
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const current = nav.find((n) =>
     n.to === "/" ? location.pathname === "/" : location.pathname.startsWith(n.to),
   );
+  const initials = (user?.user_metadata?.full_name || user?.email || "DR")
+    .split(/[\s@.]/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((s: string) => s[0]?.toUpperCase())
+    .join("");
 
   return (
+    <AuthGate>
     <div className="flex min-h-screen bg-gradient-subtle">
       {/* Sidebar */}
       <aside className="hidden md:flex w-64 flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border sticky top-0 h-screen">
@@ -101,9 +114,19 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             <Bell className="size-4" />
             <span className="absolute top-2 right-2 size-2 rounded-full bg-primary" />
           </button>
+          <button
+            onClick={async () => {
+              await supabase.auth.signOut();
+              navigate({ to: "/login" });
+            }}
+            className="size-9 rounded-md hover:bg-muted flex items-center justify-center transition-colors text-muted-foreground"
+            title="Esci"
+          >
+            <LogOut className="size-4" />
+          </button>
           <Avatar className="size-9">
             <AvatarFallback className="bg-gradient-primary text-primary-foreground text-xs font-medium">
-              DR
+              {initials || "DR"}
             </AvatarFallback>
           </Avatar>
         </header>
@@ -111,5 +134,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <main className="flex-1 p-4 md:p-8">{children}</main>
       </div>
     </div>
+    </AuthGate>
   );
 }

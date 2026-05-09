@@ -6,29 +6,34 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Plus, Filter, Download, Search } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { api, type Client } from "@/lib/api";
+import { useState } from "react";
 
 export const Route = createFileRoute("/clients")({
   component: Clients,
   head: () => ({ meta: [{ title: "Clienti · DentAI" }] }),
 });
 
-const clients = [
-  { name: "Giulia Romano", phone: "+39 333 1234567", email: "giulia@mail.com", family: "F-102", tag: "Igiene", op: "Dr. Conti", last: "12 Mag 2025", status: "Attivo" },
-  { name: "Marco Bianchi", phone: "+39 348 9988776", email: "marco.b@mail.com", family: "F-201", tag: "Conservativa", op: "Dr. Ferri", last: "02 Apr 2025", status: "Inattivo" },
-  { name: "Sara Conti", phone: "+39 320 5544332", email: "sara.c@mail.com", family: "F-318", tag: "Ortodonzia", op: "Dr. Conti", last: "28 Mag 2025", status: "Attivo" },
-  { name: "Luca De Santis", phone: "+39 366 1122334", email: "luca.ds@mail.com", family: "F-411", tag: "Implantologia", op: "Dr. Rossi", last: "15 Gen 2025", status: "Inattivo" },
-  { name: "Elena Ferri", phone: "+39 339 7766554", email: "elena.f@mail.com", family: "F-102", tag: "Igiene", op: "Dr. Conti", last: "05 Giu 2025", status: "Attivo" },
-  { name: "Paolo Greco", phone: "+39 347 8899001", email: "paolo.g@mail.com", family: "F-507", tag: "Endodonzia", op: "Dr. Ferri", last: "20 Feb 2025", status: "Inattivo" },
-  { name: "Chiara Moretti", phone: "+39 327 4455667", email: "chiara.m@mail.com", family: "F-201", tag: "Igiene", op: "Dr. Rossi", last: "30 Mag 2025", status: "Attivo" },
-];
-
 function Clients() {
+  const [q, setQ] = useState("");
+  const { data: clients = [] } = useQuery({
+    queryKey: ["clients"],
+    queryFn: async () => {
+      const { data, error } = await api.clients();
+      if (error) throw error;
+      return data as Client[];
+    },
+  });
+  const filtered = clients.filter((c) => {
+    const s = `${c.first_name} ${c.last_name} ${c.phone} ${c.family_id ?? ""}`.toLowerCase();
+    return s.includes(q.toLowerCase());
+  });
+
   return (
     <AppLayout>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-6">
-        <div>
-          <p className="text-sm text-muted-foreground">{clients.length} pazienti totali</p>
-        </div>
+        <p className="text-sm text-muted-foreground">{filtered.length} pazienti totali</p>
         <div className="flex gap-2">
           <Button variant="outline" size="sm"><Filter className="size-4 mr-1.5" />Filtri</Button>
           <Button variant="outline" size="sm"><Download className="size-4 mr-1.5" />Esporta</Button>
@@ -39,7 +44,7 @@ function Clients() {
       <Card className="p-4 mb-4">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-          <Input placeholder="Cerca per nome, telefono, ID famiglia…" className="pl-9" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cerca per nome, telefono, ID famiglia…" className="pl-9" />
         </div>
       </Card>
 
@@ -52,39 +57,40 @@ function Clients() {
                 <th className="text-left font-medium px-4 py-3">Contatti</th>
                 <th className="text-left font-medium px-4 py-3">Famiglia</th>
                 <th className="text-left font-medium px-4 py-3">Reparto</th>
-                <th className="text-left font-medium px-4 py-3">Operatore</th>
                 <th className="text-left font-medium px-4 py-3">Ultima visita</th>
                 <th className="text-left font-medium px-4 py-3">Stato</th>
               </tr>
             </thead>
             <tbody className="divide-y">
-              {clients.map((c) => (
-                <tr key={c.name} className="hover:bg-muted/30 transition-colors">
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      <Avatar className="size-8">
-                        <AvatarFallback className="bg-gradient-primary text-primary-foreground text-xs">
-                          {c.name.split(" ").map((n) => n[0]).join("")}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="font-medium">{c.name}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="text-xs">{c.phone}</div>
-                    <div className="text-xs text-muted-foreground">{c.email}</div>
-                  </td>
-                  <td className="px-4 py-3"><Badge variant="outline">{c.family}</Badge></td>
-                  <td className="px-4 py-3"><Badge variant="secondary">{c.tag}</Badge></td>
-                  <td className="px-4 py-3 text-muted-foreground">{c.op}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{c.last}</td>
-                  <td className="px-4 py-3">
-                    <Badge className={c.status === "Attivo" ? "bg-success/15 text-success hover:bg-success/15" : "bg-warning/20 text-warning-foreground hover:bg-warning/20"}>
-                      {c.status}
-                    </Badge>
-                  </td>
-                </tr>
-              ))}
+              {filtered.map((c) => {
+                const name = `${c.first_name} ${c.last_name}`;
+                return (
+                  <tr key={c.id} className="hover:bg-muted/30 transition-colors">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="size-8">
+                          <AvatarFallback className="bg-gradient-primary text-primary-foreground text-xs">
+                            {c.first_name[0]}{c.last_name[0]}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="font-medium">{name}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="text-xs">{c.phone}</div>
+                      <div className="text-xs text-muted-foreground">{c.email}</div>
+                    </td>
+                    <td className="px-4 py-3"><Badge variant="outline">{c.family_id}</Badge></td>
+                    <td className="px-4 py-3"><Badge variant="secondary">{c.department}</Badge></td>
+                    <td className="px-4 py-3 text-muted-foreground">{c.last_visit ?? "—"}</td>
+                    <td className="px-4 py-3">
+                      <Badge className={c.status === "active" ? "bg-success/15 text-success hover:bg-success/15" : "bg-warning/20 text-warning-foreground hover:bg-warning/20"}>
+                        {c.status === "active" ? "Attivo" : "Inattivo"}
+                      </Badge>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

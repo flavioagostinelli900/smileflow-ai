@@ -14,11 +14,13 @@ import { Route as ReceptionRouteImport } from './routes/reception'
 import { Route as OperatorsRouteImport } from './routes/operators'
 import { Route as MissedCallsRouteImport } from './routes/missed-calls'
 import { Route as LoyaltyRouteImport } from './routes/loyalty'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as FollowupRouteImport } from './routes/followup'
 import { Route as ClientsRouteImport } from './routes/clients'
 import { Route as ChatRouteImport } from './routes/chat'
 import { Route as BookingsRouteImport } from './routes/bookings'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiChatRouteImport } from './routes/api/chat'
 
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
@@ -43,6 +45,11 @@ const MissedCallsRoute = MissedCallsRouteImport.update({
 const LoyaltyRoute = LoyaltyRouteImport.update({
   id: '/loyalty',
   path: '/loyalty',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FollowupRoute = FollowupRouteImport.update({
@@ -70,6 +77,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiChatRoute = ApiChatRouteImport.update({
+  id: '/api/chat',
+  path: '/api/chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -77,11 +89,13 @@ export interface FileRoutesByFullPath {
   '/chat': typeof ChatRoute
   '/clients': typeof ClientsRoute
   '/followup': typeof FollowupRoute
+  '/login': typeof LoginRoute
   '/loyalty': typeof LoyaltyRoute
   '/missed-calls': typeof MissedCallsRoute
   '/operators': typeof OperatorsRoute
   '/reception': typeof ReceptionRoute
   '/settings': typeof SettingsRoute
+  '/api/chat': typeof ApiChatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -89,11 +103,13 @@ export interface FileRoutesByTo {
   '/chat': typeof ChatRoute
   '/clients': typeof ClientsRoute
   '/followup': typeof FollowupRoute
+  '/login': typeof LoginRoute
   '/loyalty': typeof LoyaltyRoute
   '/missed-calls': typeof MissedCallsRoute
   '/operators': typeof OperatorsRoute
   '/reception': typeof ReceptionRoute
   '/settings': typeof SettingsRoute
+  '/api/chat': typeof ApiChatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -102,11 +118,13 @@ export interface FileRoutesById {
   '/chat': typeof ChatRoute
   '/clients': typeof ClientsRoute
   '/followup': typeof FollowupRoute
+  '/login': typeof LoginRoute
   '/loyalty': typeof LoyaltyRoute
   '/missed-calls': typeof MissedCallsRoute
   '/operators': typeof OperatorsRoute
   '/reception': typeof ReceptionRoute
   '/settings': typeof SettingsRoute
+  '/api/chat': typeof ApiChatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -116,11 +134,13 @@ export interface FileRouteTypes {
     | '/chat'
     | '/clients'
     | '/followup'
+    | '/login'
     | '/loyalty'
     | '/missed-calls'
     | '/operators'
     | '/reception'
     | '/settings'
+    | '/api/chat'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -128,11 +148,13 @@ export interface FileRouteTypes {
     | '/chat'
     | '/clients'
     | '/followup'
+    | '/login'
     | '/loyalty'
     | '/missed-calls'
     | '/operators'
     | '/reception'
     | '/settings'
+    | '/api/chat'
   id:
     | '__root__'
     | '/'
@@ -140,11 +162,13 @@ export interface FileRouteTypes {
     | '/chat'
     | '/clients'
     | '/followup'
+    | '/login'
     | '/loyalty'
     | '/missed-calls'
     | '/operators'
     | '/reception'
     | '/settings'
+    | '/api/chat'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -153,11 +177,13 @@ export interface RootRouteChildren {
   ChatRoute: typeof ChatRoute
   ClientsRoute: typeof ClientsRoute
   FollowupRoute: typeof FollowupRoute
+  LoginRoute: typeof LoginRoute
   LoyaltyRoute: typeof LoyaltyRoute
   MissedCallsRoute: typeof MissedCallsRoute
   OperatorsRoute: typeof OperatorsRoute
   ReceptionRoute: typeof ReceptionRoute
   SettingsRoute: typeof SettingsRoute
+  ApiChatRoute: typeof ApiChatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -197,6 +223,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoyaltyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/followup': {
       id: '/followup'
       path: '/followup'
@@ -232,6 +265,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/chat': {
+      id: '/api/chat'
+      path: '/api/chat'
+      fullPath: '/api/chat'
+      preLoaderRoute: typeof ApiChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -241,11 +281,13 @@ const rootRouteChildren: RootRouteChildren = {
   ChatRoute: ChatRoute,
   ClientsRoute: ClientsRoute,
   FollowupRoute: FollowupRoute,
+  LoginRoute: LoginRoute,
   LoyaltyRoute: LoyaltyRoute,
   MissedCallsRoute: MissedCallsRoute,
   OperatorsRoute: OperatorsRoute,
   ReceptionRoute: ReceptionRoute,
   SettingsRoute: SettingsRoute,
+  ApiChatRoute: ApiChatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
