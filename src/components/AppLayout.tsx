@@ -114,9 +114,19 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             <Bell className="size-4" />
             <span className="absolute top-2 right-2 size-2 rounded-full bg-primary" />
           </button>
+          <button
+            onClick={async () => {
+              await supabase.auth.signOut();
+              navigate({ to: "/login" });
+            }}
+            className="size-9 rounded-md hover:bg-muted flex items-center justify-center transition-colors text-muted-foreground"
+            title="Esci"
+          >
+            <LogOut className="size-4" />
+          </button>
           <Avatar className="size-9">
             <AvatarFallback className="bg-gradient-primary text-primary-foreground text-xs font-medium">
-              DR
+              {initials || "DR"}
             </AvatarFallback>
           </Avatar>
         </header>
@@ -124,5 +134,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <main className="flex-1 p-4 md:p-8">{children}</main>
       </div>
     </div>
+    </AuthGate>
   );
 }
