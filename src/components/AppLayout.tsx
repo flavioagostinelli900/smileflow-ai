@@ -1,4 +1,8 @@
-import { Link, useLocation } from "@tanstack/react-router";
+import { Link, useLocation, useNavigate } from "@tanstack/react-router";
+import { AuthGate } from "@/components/AuthGate";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/useAuth";
+import { LogOut } from "lucide-react";
 import {
   LayoutDashboard,
   Users,
