@@ -30,6 +30,7 @@ const nav = [
   { to: "/chat", label: "Chat AI", icon: MessagesSquare },
   { to: "/operators", label: "Operatori", icon: UserCog },
   { to: "/bookings", label: "Prenotazioni", icon: Calendar },
+  { to: "/reminders", label: "Reminder", icon: Bell },
   { to: "/loyalty", label: "Fedeltà", icon: Gift },
   { to: "/reception", label: "Segreteria", icon: ClipboardPlus },
   { to: "/settings", label: "Configurazione", icon: Settings },
