@@ -213,3 +213,86 @@ function ClientDetail() {
     </AppLayout>
   );
 }
+
+type HistoryRow = { id: string; starts_at: string; visit_type: string; operator_name: string | null; duration_minutes: number; status: string };
+
+function realRow(a: Appointment & { operator: Operator | null }): HistoryRow {
+  return { id: a.id, starts_at: a.starts_at, visit_type: a.visit_type, operator_name: a.operator?.name ?? null, duration_minutes: a.duration_minutes, status: a.status };
+}
+
+const VISIT_TAGS = ["Igiene", "Conservativa", "Ortodonzia", "Implantologia", "Endodonzia", "Chirurgia", "Controllo"];
+const DEMO_OPERATORS = ["Dr. Rossi", "Dr.ssa Bianchi", "Dr. Conti", "Dr.ssa Marini"];
+const DEMO_DURATIONS: Record<string, number> = { Igiene: 45, Conservativa: 60, Ortodonzia: 30, Implantologia: 90, Endodonzia: 75, Chirurgia: 60, Controllo: 30 };
+
+function demoHistory(client: Client): HistoryRow[] {
+  const base = client.last_visit ? new Date(client.last_visit) : new Date(Date.now() - 200 * 86400000);
+  const seed = parseInt(client.id.slice(0, 8), 16) || 1;
+  const baseTag = (client.tags?.[0] && VISIT_TAGS.includes(client.tags[0])) ? client.tags[0] : (client.department && VISIT_TAGS.includes(client.department) ? client.department : VISIT_TAGS[seed % VISIT_TAGS.length]);
+  const rows: HistoryRow[] = [];
+  for (let i = 0; i < 4; i++) {
+    const d = new Date(base); d.setDate(d.getDate() - i * (90 + ((seed + i) % 60)));
+    const tag = i === 0 ? baseTag : VISIT_TAGS[(seed + i * 3) % VISIT_TAGS.length];
+    const status = i === 0 ? "completed" : ((seed + i) % 7 === 0 ? "cancelled" : (seed + i) % 11 === 0 ? "no_show" : "completed");
+    rows.push({ id: `demo-${client.id}-${i}`, starts_at: d.toISOString(), visit_type: tag, operator_name: DEMO_OPERATORS[(seed + i) % DEMO_OPERATORS.length], duration_minutes: DEMO_DURATIONS[tag] ?? 30, status });
+  }
+  return rows;
+}
+
+function visitStatusBadge(status: string) {
+  const s = status.toLowerCase();
+  if (s === "completed" || s === "scheduled") return <Badge className="bg-success/15 text-success hover:bg-success/15 text-[10px]">Completata</Badge>;
+  if (s === "cancelled") return <Badge variant="outline" className="text-[10px]">Annullata</Badge>;
+  if (s === "no_show") return <Badge className="bg-destructive/15 text-destructive text-[10px]">No-show</Badge>;
+  return <Badge variant="outline" className="text-[10px]">{status}</Badge>;
+}
+
+const INACTIVITY_THRESHOLDS: Record<string, number> = { IGIENE: 6, CONTROLLO: 8, CHIRURGIA: 3 };
+
+function getInactivityThreshold(client: Client): number {
+  const tags = (client.tags ?? []).map((t) => t.toUpperCase());
+  for (const t of tags) if (INACTIVITY_THRESHOLDS[t] != null) return INACTIVITY_THRESHOLDS[t];
+  const dep = (client.department ?? "").toUpperCase();
+  if (INACTIVITY_THRESHOLDS[dep] != null) return INACTIVITY_THRESHOLDS[dep];
+  return 12;
+}
+
+function InactivityBanner({ client, sequences, onStart }: { client: Client; sequences: FollowupSequence[]; onStart: (s: FollowupSequence) => void }) {
+  if (!client.last_visit) {
+    return (
+      <Card className="p-4 border-muted bg-muted/30 flex items-center gap-3">
+        <Calendar className="size-4 text-muted-foreground" />
+        <div className="text-sm text-muted-foreground">Nessuna data ultima visita registrata</div>
+      </Card>
+    );
+  }
+  const last = new Date(client.last_visit);
+  const months = Math.floor((Date.now() - last.getTime()) / (30 * 86400000));
+  const threshold = getInactivityThreshold(client);
+  const inactive = months >= threshold;
+  const seq = sequences[0];
+
+  return (
+    <Card className={`p-4 border ${inactive ? "border-warning/40 bg-warning/10" : "border-success/30 bg-success/5"}`}>
+      <div className="flex items-start gap-3 flex-wrap">
+        <div className={`size-10 rounded-lg flex items-center justify-center ${inactive ? "bg-warning/20 text-warning-foreground" : "bg-success/15 text-success"}`}>
+          {inactive ? <AlertTriangle className="size-5" /> : <Calendar className="size-5" />}
+        </div>
+        <div className="flex-1 min-w-[220px]">
+          <div className="text-sm font-semibold">
+            {months} {months === 1 ? "mese" : "mesi"} dall'ultima visita
+            {inactive ? <span className="ml-2 text-warning-foreground">· Paziente inattivo</span> : <span className="ml-2 text-success">· Attivo</span>}
+          </div>
+          <div className="text-xs text-muted-foreground mt-0.5">
+            Soglia inattività per {(client.tags?.[0] ?? client.department ?? "Generico")}: {threshold} mesi
+          </div>
+        </div>
+        {inactive && seq && (
+          <Button size="sm" className="bg-gradient-primary" onClick={() => onStart(seq)}>
+            <Sparkles className="size-3.5 mr-1.5" />Avvia follow-up
+          </Button>
+        )}
+      </div>
+    </Card>
+  );
+}
+
