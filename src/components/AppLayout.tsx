@@ -17,6 +17,7 @@ import {
   Sparkles,
   Bell,
   Search,
+  TrendingUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -32,6 +33,7 @@ const nav = [
   { to: "/bookings", label: "Prenotazioni", icon: Calendar },
   { to: "/reminders", label: "Reminder", icon: Bell },
   { to: "/loyalty", label: "Fedeltà", icon: Gift },
+  { to: "/upsell", label: "Upsell", icon: TrendingUp },
   { to: "/reception", label: "Segreteria", icon: ClipboardPlus },
   { to: "/settings", label: "Configurazione", icon: Settings },
 ];

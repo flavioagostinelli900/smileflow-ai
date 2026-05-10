@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as UpsellRouteImport } from './routes/upsell'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as RemindersRouteImport } from './routes/reminders'
 import { Route as ReceptionRouteImport } from './routes/reception'
@@ -27,6 +28,11 @@ import { Route as ApiTagClientsRouteImport } from './routes/api/tag-clients'
 import { Route as ApiReminderRespondRouteImport } from './routes/api/reminder-respond'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 
+const UpsellRoute = UpsellRouteImport.update({
+  id: '/upsell',
+  path: '/upsell',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -126,6 +132,7 @@ export interface FileRoutesByFullPath {
   '/reception': typeof ReceptionRoute
   '/reminders': typeof RemindersRoute
   '/settings': typeof SettingsRoute
+  '/upsell': typeof UpsellRoute
   '/api/chat': typeof ApiChatRoute
   '/api/reminder-respond': typeof ApiReminderRespondRoute
   '/api/tag-clients': typeof ApiTagClientsRoute
@@ -145,6 +152,7 @@ export interface FileRoutesByTo {
   '/reception': typeof ReceptionRoute
   '/reminders': typeof RemindersRoute
   '/settings': typeof SettingsRoute
+  '/upsell': typeof UpsellRoute
   '/api/chat': typeof ApiChatRoute
   '/api/reminder-respond': typeof ApiReminderRespondRoute
   '/api/tag-clients': typeof ApiTagClientsRoute
@@ -165,6 +173,7 @@ export interface FileRoutesById {
   '/reception': typeof ReceptionRoute
   '/reminders': typeof RemindersRoute
   '/settings': typeof SettingsRoute
+  '/upsell': typeof UpsellRoute
   '/api/chat': typeof ApiChatRoute
   '/api/reminder-respond': typeof ApiReminderRespondRoute
   '/api/tag-clients': typeof ApiTagClientsRoute
@@ -186,6 +195,7 @@ export interface FileRouteTypes {
     | '/reception'
     | '/reminders'
     | '/settings'
+    | '/upsell'
     | '/api/chat'
     | '/api/reminder-respond'
     | '/api/tag-clients'
@@ -205,6 +215,7 @@ export interface FileRouteTypes {
     | '/reception'
     | '/reminders'
     | '/settings'
+    | '/upsell'
     | '/api/chat'
     | '/api/reminder-respond'
     | '/api/tag-clients'
@@ -224,6 +235,7 @@ export interface FileRouteTypes {
     | '/reception'
     | '/reminders'
     | '/settings'
+    | '/upsell'
     | '/api/chat'
     | '/api/reminder-respond'
     | '/api/tag-clients'
@@ -244,6 +256,7 @@ export interface RootRouteChildren {
   ReceptionRoute: typeof ReceptionRoute
   RemindersRoute: typeof RemindersRoute
   SettingsRoute: typeof SettingsRoute
+  UpsellRoute: typeof UpsellRoute
   ApiChatRoute: typeof ApiChatRoute
   ApiReminderRespondRoute: typeof ApiReminderRespondRoute
   ApiTagClientsRoute: typeof ApiTagClientsRoute
@@ -251,6 +264,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/upsell': {
+      id: '/upsell'
+      path: '/upsell'
+      fullPath: '/upsell'
+      preLoaderRoute: typeof UpsellRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
       id: '/settings'
       path: '/settings'
@@ -409,6 +429,7 @@ const rootRouteChildren: RootRouteChildren = {
   ReceptionRoute: ReceptionRoute,
   RemindersRoute: RemindersRoute,
   SettingsRoute: SettingsRoute,
+  UpsellRoute: UpsellRoute,
   ApiChatRoute: ApiChatRoute,
   ApiReminderRespondRoute: ApiReminderRespondRoute,
   ApiTagClientsRoute: ApiTagClientsRoute,

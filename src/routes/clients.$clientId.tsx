@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Phone, Mail, Save, Sparkles, Calendar, MessageSquare, Workflow, Users as UsersIcon, Plus, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Phone, Mail, Save, Sparkles, Calendar, MessageSquare, Workflow, Users as UsersIcon, Plus, AlertTriangle, TrendingUp } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Client, Appointment, Conversation, FollowupSequence, Operator } from "@/lib/api";
+import { evaluateUpsell, nextEligibleRule, type UpsellRule, type UpsellOffer } from "@/lib/upsell";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
@@ -187,6 +188,8 @@ function ClientDetail() {
               {convs.length === 0 && <p className="text-sm text-muted-foreground py-4 text-center">Nessuna conversazione</p>}
             </div>
           </Card>
+
+          <UpsellSection clientId={clientId} appts={appts} />
         </div>
 
         <div className="space-y-6">
@@ -291,6 +294,83 @@ function InactivityBanner({ client, sequences, onStart }: { client: Client; sequ
             <Sparkles className="size-3.5 mr-1.5" />Avvia follow-up
           </Button>
         )}
+      </div>
+    </Card>
+  );
+}
+
+function UpsellSection({ clientId, appts }: { clientId: string; appts: (Appointment & { operator: Operator | null })[] }) {
+  const qc = useQueryClient();
+  const { data: client } = useQuery({
+    queryKey: ["client-lite", clientId],
+    queryFn: async () => {
+      const { data } = await supabase.from("clients").select("id, family_id, last_visit").eq("id", clientId).single();
+      return data as { id: string; family_id: string | null; last_visit: string | null } | null;
+    },
+  });
+  const { data: rules = [] } = useQuery({
+    queryKey: ["upsell-rules-active"],
+    queryFn: async () => {
+      const { data } = await supabase.from("upsell_rules").select("*").eq("active", true);
+      return (data ?? []) as UpsellRule[];
+    },
+  });
+  const { data: offers = [] } = useQuery({
+    queryKey: ["upsell-offers", clientId],
+    queryFn: async () => {
+      const { data } = await supabase.from("upsell_offers").select("*").eq("client_id", clientId).order("sent_at", { ascending: false });
+      return (data ?? []) as UpsellOffer[];
+    },
+  });
+
+  const active = offers.find((o) => o.status === "active");
+  const next = client && rules.length
+    ? nextEligibleRule({ id: client.id, first_name: "", last_name: "", family_id: client.family_id, last_visit: client.last_visit }, appts.map((a) => ({ id: a.id, visit_type: a.visit_type, status: a.status })), rules)
+    : null;
+
+  const triggerEvaluate = async () => {
+    const last = appts[0];
+    const result = await evaluateUpsell(clientId, last?.id);
+    if (result) toast.success(`Offerta creata: ${result.rule.name}`);
+    else toast.info("Nessuna offerta applicabile (regole non soddisfatte)");
+    qc.invalidateQueries({ queryKey: ["upsell-offers", clientId] });
+  };
+
+  return (
+    <Card className="p-5">
+      <h3 className="font-semibold mb-3 flex items-center gap-2"><TrendingUp className="size-4 text-primary" />Offerte e upsell</h3>
+
+      {active ? (
+        <div className="p-3 rounded-lg bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/30 mb-3">
+          <div className="text-[11px] text-primary font-medium uppercase tracking-wider mb-1">Offerta attiva</div>
+          <div className="text-sm font-semibold">{active.treatment} −{active.discount_percent}%</div>
+          <div className="text-xs text-muted-foreground mt-0.5">Scade {new Date(active.expires_at).toLocaleDateString("it")}</div>
+        </div>
+      ) : (
+        <div className="text-xs text-muted-foreground mb-3">Nessuna offerta attiva</div>
+      )}
+
+      {next && !active && (
+        <div className="p-3 rounded-lg bg-muted/40 border border-dashed mb-3">
+          <div className="text-[11px] text-muted-foreground uppercase tracking-wider mb-1">Prossima offerta prevista</div>
+          <div className="text-sm font-medium">{next.name}</div>
+          <div className="text-xs text-muted-foreground">{next.treatment} · −{next.discount_percent}%</div>
+        </div>
+      )}
+
+      <Button size="sm" variant="outline" className="w-full mb-3" onClick={triggerEvaluate}>
+        <Sparkles className="size-3.5 mr-1.5" />Valuta upsell ora
+      </Button>
+
+      <div className="space-y-1.5">
+        <div className="text-[11px] text-muted-foreground uppercase tracking-wider">Storico offerte</div>
+        {offers.length === 0 && <p className="text-xs text-muted-foreground">Nessuna offerta inviata</p>}
+        {offers.slice(0, 5).map((o) => (
+          <div key={o.id} className="flex items-center gap-2 text-xs py-1.5">
+            <span className="flex-1 truncate">{o.treatment} −{o.discount_percent}%</span>
+            <Badge variant="outline" className="text-[10px] capitalize">{o.status}</Badge>
+          </div>
+        ))}
       </div>
     </Card>
   );
