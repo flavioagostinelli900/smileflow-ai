@@ -128,6 +128,8 @@ function ClientDetail() {
 
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
+          <InactivityBanner client={client} sequences={sequences} onStart={startFollowup} />
+
           <Card className="p-5">
             <h3 className="font-semibold mb-4 flex items-center gap-2"><Calendar className="size-4 text-primary" />Storico visite</h3>
             <div className="overflow-x-auto">
@@ -136,16 +138,15 @@ function ClientDetail() {
                   <tr><th className="text-left py-2">Data</th><th className="text-left py-2">Tipo</th><th className="text-left py-2">Operatore</th><th className="text-left py-2">Durata</th><th className="text-left py-2">Stato</th></tr>
                 </thead>
                 <tbody className="divide-y">
-                  {appts.map((a) => (
+                  {(appts.length > 0 ? appts.map(realRow) : demoHistory(client)).map((a) => (
                     <tr key={a.id}>
-                      <td className="py-2.5">{new Date(a.starts_at).toLocaleString("it", { dateStyle: "short", timeStyle: "short" })}</td>
-                      <td className="py-2.5">{a.visit_type}</td>
-                      <td className="py-2.5 text-muted-foreground">{a.operator?.name ?? "—"}</td>
+                      <td className="py-2.5">{new Date(a.starts_at).toLocaleDateString("it", { day: "2-digit", month: "short", year: "numeric" })}</td>
+                      <td className="py-2.5"><Badge variant="secondary" className="text-[10px]">{a.visit_type}</Badge></td>
+                      <td className="py-2.5 text-muted-foreground">{a.operator_name ?? "—"}</td>
                       <td className="py-2.5">{a.duration_minutes} min</td>
-                      <td className="py-2.5"><Badge variant="outline" className="text-[10px]">{a.status}</Badge></td>
+                      <td className="py-2.5">{visitStatusBadge(a.status)}</td>
                     </tr>
                   ))}
-                  {appts.length === 0 && <tr><td colSpan={5} className="py-6 text-center text-muted-foreground text-xs">Nessuna visita registrata</td></tr>}
                 </tbody>
               </table>
             </div>
