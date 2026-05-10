@@ -33,6 +33,7 @@ const nav = [
   { to: "/bookings", label: "Prenotazioni", icon: Calendar },
   { to: "/reminders", label: "Reminder", icon: Bell },
   { to: "/loyalty", label: "Fedeltà", icon: Gift },
+  { to: "/upsell", label: "Upsell", icon: TrendingUp },
   { to: "/reception", label: "Segreteria", icon: ClipboardPlus },
   { to: "/settings", label: "Configurazione", icon: Settings },
 ];
