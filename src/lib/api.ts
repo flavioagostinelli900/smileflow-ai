@@ -84,6 +84,40 @@ export type Appointment = {
   notes: string | null;
 };
 
+export type PatientBlock = {
+  id: string;
+  block_number: number;
+  status: "pending" | "in_progress" | "completed";
+  scheduled_for: string | null;
+  total: number;
+  contacted: number;
+};
+
+export type Reminder = {
+  id: string;
+  client_id: string | null;
+  appointment_id: string | null;
+  type: "24h" | "2h";
+  status: "pending" | "sent" | "failed" | "confirmed" | "cancelled";
+  scheduled_at: string;
+  sent_at: string | null;
+};
+
+export type OpeningHour = { day: string; open: string; close: string; active: boolean };
+export type VisitType = { name: string; minutes: number; ai_booking: boolean };
+export type StudioSettings = {
+  id: string;
+  name: string;
+  address: string | null;
+  phone: string | null;
+  whatsapp_ai: string | null;
+  whatsapp_studio: string | null;
+  whatsapp_mode: "dedicated" | "studio";
+  opening_hours: OpeningHour[];
+  visit_types: VisitType[];
+  message_templates: Record<string, string>;
+};
+
 export type Reward = {
   id: string;
   client_id: string | null;
