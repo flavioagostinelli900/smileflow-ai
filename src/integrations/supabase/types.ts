@@ -554,6 +554,90 @@ export type Database = {
         }
         Relationships: []
       }
+      upsell_offers: {
+        Row: {
+          appointment_id: string | null
+          client_id: string | null
+          created_at: string
+          discount_percent: number
+          expires_at: string
+          id: string
+          revenue_generated: number | null
+          rule_id: string | null
+          sent_at: string
+          status: string
+          treatment: string
+          used_at: string | null
+        }
+        Insert: {
+          appointment_id?: string | null
+          client_id?: string | null
+          created_at?: string
+          discount_percent?: number
+          expires_at: string
+          id?: string
+          revenue_generated?: number | null
+          rule_id?: string | null
+          sent_at?: string
+          status?: string
+          treatment: string
+          used_at?: string | null
+        }
+        Update: {
+          appointment_id?: string | null
+          client_id?: string | null
+          created_at?: string
+          discount_percent?: number
+          expires_at?: string
+          id?: string
+          revenue_generated?: number | null
+          rule_id?: string | null
+          sent_at?: string
+          status?: string
+          treatment?: string
+          used_at?: string | null
+        }
+        Relationships: []
+      }
+      upsell_rules: {
+        Row: {
+          active: boolean
+          created_at: string
+          discount_percent: number
+          id: string
+          message_template: string | null
+          name: string
+          threshold: number
+          treatment: string
+          trigger_type: string
+          validity_days: number
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          discount_percent?: number
+          id?: string
+          message_template?: string | null
+          name: string
+          threshold?: number
+          treatment: string
+          trigger_type: string
+          validity_days?: number
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          discount_percent?: number
+          id?: string
+          message_template?: string | null
+          name?: string
+          threshold?: number
+          treatment?: string
+          trigger_type?: string
+          validity_days?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
