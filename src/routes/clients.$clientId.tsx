@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Phone, Mail, Save, Sparkles, Calendar, MessageSquare, Workflow, Users as UsersIcon, Plus, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Phone, Mail, Save, Sparkles, Calendar, MessageSquare, Workflow, Users as UsersIcon, Plus, AlertTriangle, TrendingUp } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Client, Appointment, Conversation, FollowupSequence, Operator } from "@/lib/api";
+import { evaluateUpsell, nextEligibleRule, type UpsellRule, type UpsellOffer } from "@/lib/upsell";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
