@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
 import { AppLayout } from "@/components/AppLayout";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,14 @@ export const Route = createFileRoute("/clients")({
 const departments = ["Igiene", "Ortodonzia", "Implantologia", "Estetica", "Endodonzia", "Pediatrica"];
 
 function Clients() {
+  const location = useLocation();
+
+  if (location.pathname !== "/clients") return <Outlet />;
+
+  return <ClientsList />;
+}
+
+function ClientsList() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [q, setQ] = useState("");
