@@ -24,6 +24,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as OperatorsOperatorIdRouteImport } from './routes/operators.$operatorId'
 import { Route as ClientsClientIdRouteImport } from './routes/clients.$clientId'
 import { Route as ApiTagClientsRouteImport } from './routes/api/tag-clients'
+import { Route as ApiReminderRespondRouteImport } from './routes/api/reminder-respond'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 
 const SettingsRoute = SettingsRouteImport.update({
@@ -101,6 +102,11 @@ const ApiTagClientsRoute = ApiTagClientsRouteImport.update({
   path: '/api/tag-clients',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiReminderRespondRoute = ApiReminderRespondRouteImport.update({
+  id: '/api/reminder-respond',
+  path: '/api/reminder-respond',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiChatRoute = ApiChatRouteImport.update({
   id: '/api/chat',
   path: '/api/chat',
@@ -121,6 +127,7 @@ export interface FileRoutesByFullPath {
   '/reminders': typeof RemindersRoute
   '/settings': typeof SettingsRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/reminder-respond': typeof ApiReminderRespondRoute
   '/api/tag-clients': typeof ApiTagClientsRoute
   '/clients/$clientId': typeof ClientsClientIdRoute
   '/operators/$operatorId': typeof OperatorsOperatorIdRoute
@@ -139,6 +146,7 @@ export interface FileRoutesByTo {
   '/reminders': typeof RemindersRoute
   '/settings': typeof SettingsRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/reminder-respond': typeof ApiReminderRespondRoute
   '/api/tag-clients': typeof ApiTagClientsRoute
   '/clients/$clientId': typeof ClientsClientIdRoute
   '/operators/$operatorId': typeof OperatorsOperatorIdRoute
@@ -158,6 +166,7 @@ export interface FileRoutesById {
   '/reminders': typeof RemindersRoute
   '/settings': typeof SettingsRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/reminder-respond': typeof ApiReminderRespondRoute
   '/api/tag-clients': typeof ApiTagClientsRoute
   '/clients/$clientId': typeof ClientsClientIdRoute
   '/operators/$operatorId': typeof OperatorsOperatorIdRoute
@@ -178,6 +187,7 @@ export interface FileRouteTypes {
     | '/reminders'
     | '/settings'
     | '/api/chat'
+    | '/api/reminder-respond'
     | '/api/tag-clients'
     | '/clients/$clientId'
     | '/operators/$operatorId'
@@ -196,6 +206,7 @@ export interface FileRouteTypes {
     | '/reminders'
     | '/settings'
     | '/api/chat'
+    | '/api/reminder-respond'
     | '/api/tag-clients'
     | '/clients/$clientId'
     | '/operators/$operatorId'
@@ -214,6 +225,7 @@ export interface FileRouteTypes {
     | '/reminders'
     | '/settings'
     | '/api/chat'
+    | '/api/reminder-respond'
     | '/api/tag-clients'
     | '/clients/$clientId'
     | '/operators/$operatorId'
@@ -233,6 +245,7 @@ export interface RootRouteChildren {
   RemindersRoute: typeof RemindersRoute
   SettingsRoute: typeof SettingsRoute
   ApiChatRoute: typeof ApiChatRoute
+  ApiReminderRespondRoute: typeof ApiReminderRespondRoute
   ApiTagClientsRoute: typeof ApiTagClientsRoute
 }
 
@@ -343,6 +356,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiTagClientsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/reminder-respond': {
+      id: '/api/reminder-respond'
+      path: '/api/reminder-respond'
+      fullPath: '/api/reminder-respond'
+      preLoaderRoute: typeof ApiReminderRespondRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/chat': {
       id: '/api/chat'
       path: '/api/chat'
@@ -390,8 +410,19 @@ const rootRouteChildren: RootRouteChildren = {
   RemindersRoute: RemindersRoute,
   SettingsRoute: SettingsRoute,
   ApiChatRoute: ApiChatRoute,
+  ApiReminderRespondRoute: ApiReminderRespondRoute,
   ApiTagClientsRoute: ApiTagClientsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
