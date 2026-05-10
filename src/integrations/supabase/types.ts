@@ -82,6 +82,7 @@ export type Database = {
           operator_id: string | null
           phone: string
           status: string
+          tags: string[]
           updated_at: string
         }
         Insert: {
@@ -97,6 +98,7 @@ export type Database = {
           operator_id?: string | null
           phone: string
           status?: string
+          tags?: string[]
           updated_at?: string
         }
         Update: {
@@ -112,6 +114,7 @@ export type Database = {
           operator_id?: string | null
           phone?: string
           status?: string
+          tags?: string[]
           updated_at?: string
         }
         Relationships: [
@@ -338,6 +341,54 @@ export type Database = {
           },
         ]
       }
+      operator_availability: {
+        Row: {
+          active: boolean
+          day_of_week: number
+          end_time: string
+          id: string
+          operator_id: string
+          start_time: string
+        }
+        Insert: {
+          active?: boolean
+          day_of_week: number
+          end_time: string
+          id?: string
+          operator_id: string
+          start_time: string
+        }
+        Update: {
+          active?: boolean
+          day_of_week?: number
+          end_time?: string
+          id?: string
+          operator_id?: string
+          start_time?: string
+        }
+        Relationships: []
+      }
+      operator_visit_durations: {
+        Row: {
+          id: string
+          minutes: number
+          operator_id: string
+          visit_type: string
+        }
+        Insert: {
+          id?: string
+          minutes?: number
+          operator_id: string
+          visit_type: string
+        }
+        Update: {
+          id?: string
+          minutes?: number
+          operator_id?: string
+          visit_type?: string
+        }
+        Relationships: []
+      }
       operators: {
         Row: {
           avatar_url: string | null
@@ -368,6 +419,36 @@ export type Database = {
         }
         Relationships: []
       }
+      patient_blocks: {
+        Row: {
+          block_number: number
+          contacted: number
+          created_at: string
+          id: string
+          scheduled_for: string | null
+          status: string
+          total: number
+        }
+        Insert: {
+          block_number: number
+          contacted?: number
+          created_at?: string
+          id?: string
+          scheduled_for?: string | null
+          status?: string
+          total?: number
+        }
+        Update: {
+          block_number?: number
+          contacted?: number
+          created_at?: string
+          id?: string
+          scheduled_for?: string | null
+          status?: string
+          total?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -386,6 +467,81 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id?: string
+        }
+        Relationships: []
+      }
+      reminders: {
+        Row: {
+          appointment_id: string | null
+          client_id: string | null
+          created_at: string
+          id: string
+          scheduled_at: string
+          sent_at: string | null
+          status: string
+          type: string
+        }
+        Insert: {
+          appointment_id?: string | null
+          client_id?: string | null
+          created_at?: string
+          id?: string
+          scheduled_at: string
+          sent_at?: string | null
+          status?: string
+          type: string
+        }
+        Update: {
+          appointment_id?: string | null
+          client_id?: string | null
+          created_at?: string
+          id?: string
+          scheduled_at?: string
+          sent_at?: string | null
+          status?: string
+          type?: string
+        }
+        Relationships: []
+      }
+      studio_settings: {
+        Row: {
+          address: string | null
+          id: string
+          message_templates: Json
+          name: string
+          opening_hours: Json
+          phone: string | null
+          updated_at: string
+          visit_types: Json
+          whatsapp_ai: string | null
+          whatsapp_mode: string
+          whatsapp_studio: string | null
+        }
+        Insert: {
+          address?: string | null
+          id?: string
+          message_templates?: Json
+          name?: string
+          opening_hours?: Json
+          phone?: string | null
+          updated_at?: string
+          visit_types?: Json
+          whatsapp_ai?: string | null
+          whatsapp_mode?: string
+          whatsapp_studio?: string | null
+        }
+        Update: {
+          address?: string | null
+          id?: string
+          message_templates?: Json
+          name?: string
+          opening_hours?: Json
+          phone?: string | null
+          updated_at?: string
+          visit_types?: Json
+          whatsapp_ai?: string | null
+          whatsapp_mode?: string
+          whatsapp_studio?: string | null
         }
         Relationships: []
       }
