@@ -27,6 +27,7 @@ function Clients() {
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [deptFilter, setDeptFilter] = useState("all");
+  const [importOpen, setImportOpen] = useState(false);
 
   const { data: clients = [] } = useQuery({
     queryKey: ["clients"],
