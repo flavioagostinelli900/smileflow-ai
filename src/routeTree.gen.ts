@@ -23,6 +23,7 @@ import { Route as BookingsRouteImport } from './routes/bookings'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as OperatorsOperatorIdRouteImport } from './routes/operators.$operatorId'
 import { Route as ClientsClientIdRouteImport } from './routes/clients.$clientId'
+import { Route as ApiTagClientsRouteImport } from './routes/api/tag-clients'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 
 const SettingsRoute = SettingsRouteImport.update({
@@ -95,6 +96,11 @@ const ClientsClientIdRoute = ClientsClientIdRouteImport.update({
   path: '/$clientId',
   getParentRoute: () => ClientsRoute,
 } as any)
+const ApiTagClientsRoute = ApiTagClientsRouteImport.update({
+  id: '/api/tag-clients',
+  path: '/api/tag-clients',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiChatRoute = ApiChatRouteImport.update({
   id: '/api/chat',
   path: '/api/chat',
@@ -115,6 +121,7 @@ export interface FileRoutesByFullPath {
   '/reminders': typeof RemindersRoute
   '/settings': typeof SettingsRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/tag-clients': typeof ApiTagClientsRoute
   '/clients/$clientId': typeof ClientsClientIdRoute
   '/operators/$operatorId': typeof OperatorsOperatorIdRoute
 }
@@ -132,6 +139,7 @@ export interface FileRoutesByTo {
   '/reminders': typeof RemindersRoute
   '/settings': typeof SettingsRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/tag-clients': typeof ApiTagClientsRoute
   '/clients/$clientId': typeof ClientsClientIdRoute
   '/operators/$operatorId': typeof OperatorsOperatorIdRoute
 }
@@ -150,6 +158,7 @@ export interface FileRoutesById {
   '/reminders': typeof RemindersRoute
   '/settings': typeof SettingsRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/tag-clients': typeof ApiTagClientsRoute
   '/clients/$clientId': typeof ClientsClientIdRoute
   '/operators/$operatorId': typeof OperatorsOperatorIdRoute
 }
@@ -169,6 +178,7 @@ export interface FileRouteTypes {
     | '/reminders'
     | '/settings'
     | '/api/chat'
+    | '/api/tag-clients'
     | '/clients/$clientId'
     | '/operators/$operatorId'
   fileRoutesByTo: FileRoutesByTo
@@ -186,6 +196,7 @@ export interface FileRouteTypes {
     | '/reminders'
     | '/settings'
     | '/api/chat'
+    | '/api/tag-clients'
     | '/clients/$clientId'
     | '/operators/$operatorId'
   id:
@@ -203,6 +214,7 @@ export interface FileRouteTypes {
     | '/reminders'
     | '/settings'
     | '/api/chat'
+    | '/api/tag-clients'
     | '/clients/$clientId'
     | '/operators/$operatorId'
   fileRoutesById: FileRoutesById
@@ -221,6 +233,7 @@ export interface RootRouteChildren {
   RemindersRoute: typeof RemindersRoute
   SettingsRoute: typeof SettingsRoute
   ApiChatRoute: typeof ApiChatRoute
+  ApiTagClientsRoute: typeof ApiTagClientsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -323,6 +336,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ClientsClientIdRouteImport
       parentRoute: typeof ClientsRoute
     }
+    '/api/tag-clients': {
+      id: '/api/tag-clients'
+      path: '/api/tag-clients'
+      fullPath: '/api/tag-clients'
+      preLoaderRoute: typeof ApiTagClientsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/chat': {
       id: '/api/chat'
       path: '/api/chat'
@@ -370,6 +390,7 @@ const rootRouteChildren: RootRouteChildren = {
   RemindersRoute: RemindersRoute,
   SettingsRoute: SettingsRoute,
   ApiChatRoute: ApiChatRoute,
+  ApiTagClientsRoute: ApiTagClientsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

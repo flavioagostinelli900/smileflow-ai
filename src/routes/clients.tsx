@@ -6,12 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Filter, Download, Search } from "lucide-react";
+import { Plus, Filter, Download, Search, Upload } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, type Client } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import { toast } from "sonner";
+import { ImportClientsDialog } from "@/components/ImportClientsDialog";
 
 export const Route = createFileRoute("/clients")({
   component: Clients,
@@ -26,6 +27,7 @@ function Clients() {
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [deptFilter, setDeptFilter] = useState("all");
+  const [importOpen, setImportOpen] = useState(false);
 
   const { data: clients = [] } = useQuery({
     queryKey: ["clients"],
@@ -90,9 +92,12 @@ function Clients() {
           </SelectContent>
         </Select>
         <Button variant="outline" size="sm"><Filter className="size-4 mr-1.5" />Segmenti</Button>
+        <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}><Upload className="size-4 mr-1.5" />Importa database</Button>
         <Button variant="outline" size="sm"><Download className="size-4 mr-1.5" />Esporta</Button>
         <Button size="sm" className="bg-gradient-primary" onClick={createClient}><Plus className="size-4 mr-1.5" />Nuovo</Button>
       </Card>
+
+      <ImportClientsDialog open={importOpen} onOpenChange={setImportOpen} onDone={() => qc.invalidateQueries({ queryKey: ["clients"] })} />
 
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
