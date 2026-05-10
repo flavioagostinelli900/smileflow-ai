@@ -31,7 +31,13 @@ function Reminders() {
     queryFn: async () => {
       const { data, error } = await api.reminders();
       if (error) throw error;
-      return (data ?? []) as (Reminder & { client: Client | null })[];
+      const rems = (data ?? []) as Reminder[];
+      const ids = Array.from(new Set(rems.map((r) => r.client_id).filter(Boolean) as string[]));
+      const { data: clients } = ids.length
+        ? await supabase.from("clients").select("*").in("id", ids)
+        : { data: [] as Client[] };
+      const map = new Map((clients ?? []).map((c) => [c.id, c as Client]));
+      return rems.map((r) => ({ ...r, client: r.client_id ? map.get(r.client_id) ?? null : null }));
     },
   });
 
