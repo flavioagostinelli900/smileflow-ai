@@ -1,17 +1,14 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { AppLayout } from "@/components/AppLayout";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Plus, Filter, Download, Search, Phone, Mail, Calendar, MessageSquare, Activity, Save } from "lucide-react";
+import { Plus, Filter, Download, Search } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, type Client, type Appointment, type Conversation } from "@/lib/api";
+import { api, type Client } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -25,12 +22,10 @@ const departments = ["Igiene", "Ortodonzia", "Implantologia", "Estetica", "Endod
 
 function Clients() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [deptFilter, setDeptFilter] = useState("all");
-  const [open, setOpen] = useState(false);
-  const [selected, setSelected] = useState<Client | null>(null);
-  const [draft, setDraft] = useState<Partial<Client>>({});
 
   const { data: clients = [] } = useQuery({
     queryKey: ["clients"],
@@ -55,17 +50,7 @@ function Clients() {
     inactive: clients.filter((c) => c.status === "inactive").length,
   };
 
-  const openClient = (c: Client) => { setSelected(c); setDraft(c); setOpen(true); };
-
-  const saveClient = async () => {
-    if (!selected) return;
-    const { error } = await supabase.from("clients").update({
-      first_name: draft.first_name, last_name: draft.last_name, phone: draft.phone, email: draft.email,
-      department: draft.department, status: draft.status, notes: draft.notes,
-    }).eq("id", selected.id);
-    if (error) toast.error(error.message);
-    else { toast.success("Cliente aggiornato"); qc.invalidateQueries({ queryKey: ["clients"] }); }
-  };
+  const openClient = (c: Client) => navigate({ to: "/clients/$clientId", params: { clientId: c.id } });
 
   const createClient = async () => {
     const first = prompt("Nome:"); if (!first) return;
