@@ -123,6 +123,94 @@ function FollowUp() {
   );
 }
 
+function BlocksTab() {
+  const qc = useQueryClient();
+  const { data: blocks = [] } = useQuery({
+    queryKey: ["patient-blocks"],
+    queryFn: async () => {
+      const { data, error } = await api.patientBlocks();
+      if (error) throw error;
+      return (data ?? []) as PatientBlock[];
+    },
+  });
+
+  const totalContacted = blocks.reduce((a, b) => a + b.contacted, 0);
+  const totalPatients = blocks.reduce((a, b) => a + b.total, 0);
+
+  const activateNext = async () => {
+    const next = blocks.find((b) => b.status === "pending");
+    if (!next) { toast.info("Nessun blocco in attesa"); return; }
+    await supabase.from("patient_blocks").update({ status: "in_progress", scheduled_for: new Date().toISOString().slice(0, 10) }).eq("id", next.id);
+    toast.success(`Blocco #${next.block_number} attivato`);
+    qc.invalidateQueries({ queryKey: ["patient-blocks"] });
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="grid md:grid-cols-3 gap-4">
+        <Card className="p-5">
+          <div className="text-xs text-muted-foreground mb-1">Pazienti contattati</div>
+          <div className="text-2xl font-semibold">{totalContacted} <span className="text-sm text-muted-foreground font-normal">/ {totalPatients}</span></div>
+          <div className="h-1.5 rounded-full bg-muted overflow-hidden mt-2">
+            <div className="h-full bg-gradient-to-r from-primary to-success" style={{ width: `${totalPatients ? (totalContacted / totalPatients) * 100 : 0}%` }} />
+          </div>
+        </Card>
+        <Card className="p-5">
+          <div className="text-xs text-muted-foreground mb-1">Blocchi attivi</div>
+          <div className="text-2xl font-semibold">{blocks.filter((b) => b.status === "in_progress").length}</div>
+        </Card>
+        <Card className="p-5 flex items-center justify-between">
+          <div>
+            <div className="text-xs text-muted-foreground mb-1">Prossimo blocco</div>
+            <div className="text-sm font-semibold">#{blocks.find((b) => b.status === "pending")?.block_number ?? "—"}</div>
+          </div>
+          <Button size="sm" className="bg-gradient-primary" onClick={activateNext}><PlayCircle className="size-4 mr-1.5" />Attiva ora</Button>
+        </Card>
+      </div>
+
+      <Card className="overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-muted/60 text-xs uppercase text-muted-foreground">
+            <tr>
+              <th className="text-left px-4 py-3 font-medium">Blocco</th>
+              <th className="text-left px-4 py-3 font-medium">Stato</th>
+              <th className="text-left px-4 py-3 font-medium">Data attivazione</th>
+              <th className="text-left px-4 py-3 font-medium">Avanzamento</th>
+              <th className="text-left px-4 py-3 font-medium">Pazienti</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y">
+            {blocks.map((b) => {
+              const pct = b.total ? Math.round((b.contacted / b.total) * 100) : 0;
+              return (
+                <tr key={b.id} className="hover:bg-muted/30">
+                  <td className="px-4 py-3 font-medium">Blocco #{b.block_number}</td>
+                  <td className="px-4 py-3">
+                    {b.status === "completed" && <Badge className="bg-success/15 text-success">Completato</Badge>}
+                    {b.status === "in_progress" && <Badge className="bg-info/15 text-info">In corso</Badge>}
+                    {b.status === "pending" && <Badge variant="outline">In attesa</Badge>}
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground text-xs">{b.scheduled_for ?? "—"}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-32 h-1.5 rounded-full bg-muted overflow-hidden">
+                        <div className="h-full bg-gradient-to-r from-primary to-success" style={{ width: `${pct}%` }} />
+                      </div>
+                      <span className="text-xs text-muted-foreground w-10">{pct}%</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-xs">{b.contacted} / {b.total}</td>
+                </tr>
+              );
+            })}
+            {blocks.length === 0 && <tr><td colSpan={5} className="px-4 py-12 text-center text-muted-foreground text-sm">Nessun blocco configurato</td></tr>}
+          </tbody>
+        </table>
+      </Card>
+    </div>
+  );
+}
+
 function StatMini({ icon, label, value, accent }: { icon: React.ReactNode; label: string; value: React.ReactNode; accent?: boolean }) {
   return (
     <Card className="p-5">
