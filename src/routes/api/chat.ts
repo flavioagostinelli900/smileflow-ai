@@ -31,8 +31,33 @@ export const Route = createFileRoute("/api/chat")({
             .eq("conversation_id", conversationId)
             .order("created_at");
 
-          const client = (conv as { client?: { first_name?: string; last_name?: string; department?: string } } | null)?.client;
-          const system = `Sei Sofia, assistente AI di uno studio dentistico italiano. Tono professionale, caldo, empatico. Rispondi BREVE (max 2 frasi). Quando opportuno proponi 2 slot di appuntamento. Mai consigli medici. Paziente: ${client?.first_name ?? ""} ${client?.last_name ?? ""}, reparto: ${client?.department ?? "—"}.`;
+          const client = (conv as { client_id?: string | null; tags?: string[]; internal_notes?: string | null; client?: { id?: string; first_name?: string; last_name?: string; department?: string } } | null)?.client;
+          const clientId = (conv as { client_id?: string | null } | null)?.client_id ?? client?.id ?? null;
+          const { data: appts } = clientId
+            ? await supabase.from("appointments").select("id, starts_at, status, visit_type").eq("client_id", clientId).order("starts_at", { ascending: false })
+            : { data: [] };
+          const lastClientMessage = [...(msgs ?? [])].reverse().find((m) => m.sender === "client")?.content ?? "";
+          const asksClinicalSpecifics = isClinicalSpecificQuestion(lastClientMessage);
+          const completedVisits = (appts ?? []).filter((a) => String(a.status).toLowerCase() === "completed").length;
+          const futureControl = (appts ?? []).find((a) => new Date(a.starts_at) > new Date() && String(a.status).toLowerCase() !== "cancelled");
+
+          if (asksClinicalSpecifics) {
+            const reply = clientId && completedVisits === 0
+              ? await createControlVisitAndReply({ supabase, conversationId, clientId, clientName: client?.first_name, futureControl })
+              : "Capisco, per domande così specifiche è meglio parlare al telefono con la segreteria prima di procedere. Ti faccio richiamare così raccogliamo bene le informazioni e fissiamo il percorso corretto.";
+
+            await supabase.from("messages").insert({ conversation_id: conversationId, sender: "ai", content: reply });
+            await supabase.from("conversations").update({
+              status: clientId && completedVisits === 0 ? "booked" : "operator",
+              tags: Array.from(new Set([...(conv as { tags?: string[] } | null)?.tags ?? [], "richiesta-clinica", ...(clientId && completedVisits === 0 ? ["nuovo-cliente", "controllo-prenotato"] : ["richiamare-segreteria"])])),
+              internal_notes: `${(conv as { internal_notes?: string | null } | null)?.internal_notes ?? ""}\nRichiesta clinica specifica intercettata dall'AI: richiamo telefonico segreteria.`.trim(),
+              last_message_at: new Date().toISOString(),
+            }).eq("id", conversationId);
+
+            return Response.json({ reply });
+          }
+
+          const system = `Sei Sofia, assistente AI di uno studio dentistico italiano. Tono professionale, caldo, empatico. Rispondi BREVE (max 2 frasi). Quando opportuno proponi 2 slot di appuntamento. Mai consigli medici. Se il paziente chiede dettagli clinici specifici su impianti, dolore, infezioni, farmaci, diagnosi o descrive un problema complesso, non spiegare la terapia: passa alla segreteria telefonica. Se è un nuovo cliente, indirizza a una visita di controllo. Paziente: ${client?.first_name ?? ""} ${client?.last_name ?? ""}, reparto: ${client?.department ?? "—"}. Visite completate: ${completedVisits}.`;
 
           const history = (msgs ?? [])
             .map((m) => `${m.sender === "client" ? "Paziente" : m.sender === "ai" ? "Sofia" : m.sender}: ${m.content}`)
