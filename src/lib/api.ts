@@ -94,6 +94,7 @@ export type PatientBlock = {
   contacted: number;
 };
 
+export type ProposedSlot = { starts_at: string; operator_id?: string | null; visit_type?: string };
 export type Reminder = {
   id: string;
   client_id: string | null;
@@ -102,6 +103,9 @@ export type Reminder = {
   status: "pending" | "sent" | "failed" | "confirmed" | "cancelled";
   scheduled_at: string;
   sent_at: string | null;
+  proposed_slots: ProposedSlot[];
+  cancellation_state: "cancelled" | "slots_proposed" | "rescheduled" | "no_response" | null;
+  new_appointment_id: string | null;
 };
 
 export type OpeningHour = { day: string; open: string; close: string; active: boolean };
