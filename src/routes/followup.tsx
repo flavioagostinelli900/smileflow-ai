@@ -8,9 +8,9 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Plus, Sparkles, Clock, MessageSquare, CheckCircle2, Zap, GitBranch, CalendarCheck, Bot, Trash2, ArrowDown, Play, TrendingUp } from "lucide-react";
+import { Plus, Sparkles, Clock, MessageSquare, CheckCircle2, Zap, GitBranch, CalendarCheck, Bot, Trash2, ArrowDown, Play, TrendingUp, Database, PlayCircle } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, type FollowupSequence, type WorkflowStep } from "@/lib/api";
+import { api, type FollowupSequence, type WorkflowStep, type PatientBlock } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -74,6 +74,7 @@ function FollowUp() {
         <div className="flex items-center justify-between flex-wrap gap-3">
           <TabsList>
             <TabsTrigger value="workflows">Workflow</TabsTrigger>
+            <TabsTrigger value="blocks"><Database className="size-3.5 mr-1.5" />Blocchi DB</TabsTrigger>
             <TabsTrigger value="analytics">Conversioni</TabsTrigger>
           </TabsList>
           <Button size="sm" className="bg-gradient-primary" onClick={createNew}><Plus className="size-4 mr-1.5" />Nuovo workflow</Button>
@@ -92,6 +93,8 @@ function FollowUp() {
             ))}
           </div>
         </TabsContent>
+
+        <TabsContent value="blocks"><BlocksTab /></TabsContent>
 
         <TabsContent value="analytics">
           <Card className="p-6">
