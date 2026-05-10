@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as RemindersRouteImport } from './routes/reminders'
 import { Route as ReceptionRouteImport } from './routes/reception'
 import { Route as OperatorsRouteImport } from './routes/operators'
 import { Route as MissedCallsRouteImport } from './routes/missed-calls'
@@ -20,11 +21,18 @@ import { Route as ClientsRouteImport } from './routes/clients'
 import { Route as ChatRouteImport } from './routes/chat'
 import { Route as BookingsRouteImport } from './routes/bookings'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as OperatorsOperatorIdRouteImport } from './routes/operators.$operatorId'
+import { Route as ClientsClientIdRouteImport } from './routes/clients.$clientId'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RemindersRoute = RemindersRouteImport.update({
+  id: '/reminders',
+  path: '/reminders',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReceptionRoute = ReceptionRouteImport.update({
@@ -77,6 +85,16 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OperatorsOperatorIdRoute = OperatorsOperatorIdRouteImport.update({
+  id: '/$operatorId',
+  path: '/$operatorId',
+  getParentRoute: () => OperatorsRoute,
+} as any)
+const ClientsClientIdRoute = ClientsClientIdRouteImport.update({
+  id: '/$clientId',
+  path: '/$clientId',
+  getParentRoute: () => ClientsRoute,
+} as any)
 const ApiChatRoute = ApiChatRouteImport.update({
   id: '/api/chat',
   path: '/api/chat',
@@ -87,44 +105,53 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/bookings': typeof BookingsRoute
   '/chat': typeof ChatRoute
-  '/clients': typeof ClientsRoute
+  '/clients': typeof ClientsRouteWithChildren
   '/followup': typeof FollowupRoute
   '/login': typeof LoginRoute
   '/loyalty': typeof LoyaltyRoute
   '/missed-calls': typeof MissedCallsRoute
-  '/operators': typeof OperatorsRoute
+  '/operators': typeof OperatorsRouteWithChildren
   '/reception': typeof ReceptionRoute
+  '/reminders': typeof RemindersRoute
   '/settings': typeof SettingsRoute
   '/api/chat': typeof ApiChatRoute
+  '/clients/$clientId': typeof ClientsClientIdRoute
+  '/operators/$operatorId': typeof OperatorsOperatorIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/bookings': typeof BookingsRoute
   '/chat': typeof ChatRoute
-  '/clients': typeof ClientsRoute
+  '/clients': typeof ClientsRouteWithChildren
   '/followup': typeof FollowupRoute
   '/login': typeof LoginRoute
   '/loyalty': typeof LoyaltyRoute
   '/missed-calls': typeof MissedCallsRoute
-  '/operators': typeof OperatorsRoute
+  '/operators': typeof OperatorsRouteWithChildren
   '/reception': typeof ReceptionRoute
+  '/reminders': typeof RemindersRoute
   '/settings': typeof SettingsRoute
   '/api/chat': typeof ApiChatRoute
+  '/clients/$clientId': typeof ClientsClientIdRoute
+  '/operators/$operatorId': typeof OperatorsOperatorIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/bookings': typeof BookingsRoute
   '/chat': typeof ChatRoute
-  '/clients': typeof ClientsRoute
+  '/clients': typeof ClientsRouteWithChildren
   '/followup': typeof FollowupRoute
   '/login': typeof LoginRoute
   '/loyalty': typeof LoyaltyRoute
   '/missed-calls': typeof MissedCallsRoute
-  '/operators': typeof OperatorsRoute
+  '/operators': typeof OperatorsRouteWithChildren
   '/reception': typeof ReceptionRoute
+  '/reminders': typeof RemindersRoute
   '/settings': typeof SettingsRoute
   '/api/chat': typeof ApiChatRoute
+  '/clients/$clientId': typeof ClientsClientIdRoute
+  '/operators/$operatorId': typeof OperatorsOperatorIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -139,8 +166,11 @@ export interface FileRouteTypes {
     | '/missed-calls'
     | '/operators'
     | '/reception'
+    | '/reminders'
     | '/settings'
     | '/api/chat'
+    | '/clients/$clientId'
+    | '/operators/$operatorId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -153,8 +183,11 @@ export interface FileRouteTypes {
     | '/missed-calls'
     | '/operators'
     | '/reception'
+    | '/reminders'
     | '/settings'
     | '/api/chat'
+    | '/clients/$clientId'
+    | '/operators/$operatorId'
   id:
     | '__root__'
     | '/'
@@ -167,21 +200,25 @@ export interface FileRouteTypes {
     | '/missed-calls'
     | '/operators'
     | '/reception'
+    | '/reminders'
     | '/settings'
     | '/api/chat'
+    | '/clients/$clientId'
+    | '/operators/$operatorId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BookingsRoute: typeof BookingsRoute
   ChatRoute: typeof ChatRoute
-  ClientsRoute: typeof ClientsRoute
+  ClientsRoute: typeof ClientsRouteWithChildren
   FollowupRoute: typeof FollowupRoute
   LoginRoute: typeof LoginRoute
   LoyaltyRoute: typeof LoyaltyRoute
   MissedCallsRoute: typeof MissedCallsRoute
-  OperatorsRoute: typeof OperatorsRoute
+  OperatorsRoute: typeof OperatorsRouteWithChildren
   ReceptionRoute: typeof ReceptionRoute
+  RemindersRoute: typeof RemindersRoute
   SettingsRoute: typeof SettingsRoute
   ApiChatRoute: typeof ApiChatRoute
 }
@@ -193,6 +230,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reminders': {
+      id: '/reminders'
+      path: '/reminders'
+      fullPath: '/reminders'
+      preLoaderRoute: typeof RemindersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reception': {
@@ -265,6 +309,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/operators/$operatorId': {
+      id: '/operators/$operatorId'
+      path: '/$operatorId'
+      fullPath: '/operators/$operatorId'
+      preLoaderRoute: typeof OperatorsOperatorIdRouteImport
+      parentRoute: typeof OperatorsRoute
+    }
+    '/clients/$clientId': {
+      id: '/clients/$clientId'
+      path: '/$clientId'
+      fullPath: '/clients/$clientId'
+      preLoaderRoute: typeof ClientsClientIdRouteImport
+      parentRoute: typeof ClientsRoute
+    }
     '/api/chat': {
       id: '/api/chat'
       path: '/api/chat'
@@ -275,17 +333,41 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface ClientsRouteChildren {
+  ClientsClientIdRoute: typeof ClientsClientIdRoute
+}
+
+const ClientsRouteChildren: ClientsRouteChildren = {
+  ClientsClientIdRoute: ClientsClientIdRoute,
+}
+
+const ClientsRouteWithChildren =
+  ClientsRoute._addFileChildren(ClientsRouteChildren)
+
+interface OperatorsRouteChildren {
+  OperatorsOperatorIdRoute: typeof OperatorsOperatorIdRoute
+}
+
+const OperatorsRouteChildren: OperatorsRouteChildren = {
+  OperatorsOperatorIdRoute: OperatorsOperatorIdRoute,
+}
+
+const OperatorsRouteWithChildren = OperatorsRoute._addFileChildren(
+  OperatorsRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BookingsRoute: BookingsRoute,
   ChatRoute: ChatRoute,
-  ClientsRoute: ClientsRoute,
+  ClientsRoute: ClientsRouteWithChildren,
   FollowupRoute: FollowupRoute,
   LoginRoute: LoginRoute,
   LoyaltyRoute: LoyaltyRoute,
   MissedCallsRoute: MissedCallsRoute,
-  OperatorsRoute: OperatorsRoute,
+  OperatorsRoute: OperatorsRouteWithChildren,
   ReceptionRoute: ReceptionRoute,
+  RemindersRoute: RemindersRoute,
   SettingsRoute: SettingsRoute,
   ApiChatRoute: ApiChatRoute,
 }

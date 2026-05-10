@@ -12,6 +12,7 @@ export type Client = {
   last_visit: string | null;
   status: "active" | "inactive";
   notes: string | null;
+  tags: string[];
 };
 
 export type Operator = {
@@ -145,6 +146,6 @@ export const api = {
   sequences: () => supabase.from("followup_sequences").select("*").order("created_at"),
   rewards: () => supabase.from("loyalty_rewards").select("*, client:clients(*)").order("created_at", { ascending: false }),
   patientBlocks: () => supabase.from("patient_blocks").select("*").order("block_number"),
-  reminders: () => supabase.from("reminders").select("*, client:clients(*)").order("scheduled_at"),
+  reminders: () => supabase.from("reminders").select("*").order("scheduled_at"),
   studioSettings: () => supabase.from("studio_settings").select("*").limit(1).maybeSingle(),
 };
