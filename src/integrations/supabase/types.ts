@@ -473,9 +473,12 @@ export type Database = {
       reminders: {
         Row: {
           appointment_id: string | null
+          cancellation_state: string | null
           client_id: string | null
           created_at: string
           id: string
+          new_appointment_id: string | null
+          proposed_slots: Json
           scheduled_at: string
           sent_at: string | null
           status: string
@@ -483,9 +486,12 @@ export type Database = {
         }
         Insert: {
           appointment_id?: string | null
+          cancellation_state?: string | null
           client_id?: string | null
           created_at?: string
           id?: string
+          new_appointment_id?: string | null
+          proposed_slots?: Json
           scheduled_at: string
           sent_at?: string | null
           status?: string
@@ -493,9 +499,12 @@ export type Database = {
         }
         Update: {
           appointment_id?: string | null
+          cancellation_state?: string | null
           client_id?: string | null
           created_at?: string
           id?: string
+          new_appointment_id?: string | null
+          proposed_slots?: Json
           scheduled_at?: string
           sent_at?: string | null
           status?: string
