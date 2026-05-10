@@ -131,8 +131,10 @@ export type Database = {
           client_id: string | null
           created_at: string
           id: string
+          internal_notes: string | null
           last_message_at: string | null
           status: string
+          tags: string[]
         }
         Insert: {
           assigned_operator_id?: string | null
@@ -140,8 +142,10 @@ export type Database = {
           client_id?: string | null
           created_at?: string
           id?: string
+          internal_notes?: string | null
           last_message_at?: string | null
           status?: string
+          tags?: string[]
         }
         Update: {
           assigned_operator_id?: string | null
@@ -149,8 +153,10 @@ export type Database = {
           client_id?: string | null
           created_at?: string
           id?: string
+          internal_notes?: string | null
           last_message_at?: string | null
           status?: string
+          tags?: string[]
         }
         Relationships: [
           {
@@ -178,7 +184,9 @@ export type Database = {
           messages_sent: number | null
           name: string
           steps: number
+          steps_config: Json
           target: string
+          trigger_type: string
         }
         Insert: {
           active?: boolean
@@ -188,7 +196,9 @@ export type Database = {
           messages_sent?: number | null
           name: string
           steps?: number
+          steps_config?: Json
           target: string
+          trigger_type?: string
         }
         Update: {
           active?: boolean
@@ -198,7 +208,9 @@ export type Database = {
           messages_sent?: number | null
           name?: string
           steps?: number
+          steps_config?: Json
           target?: string
+          trigger_type?: string
         }
         Relationships: []
       }
