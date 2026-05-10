@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
 import { AppLayout } from "@/components/AppLayout";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,14 @@ export const Route = createFileRoute("/clients")({
 const departments = ["Igiene", "Ortodonzia", "Implantologia", "Estetica", "Endodonzia", "Pediatrica"];
 
 function Clients() {
+  const location = useLocation();
+
+  if (location.pathname !== "/clients") return <Outlet />;
+
+  return <ClientsList />;
+}
+
+function ClientsList() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [q, setQ] = useState("");
@@ -114,7 +122,20 @@ function Clients() {
             </thead>
             <tbody className="divide-y">
               {filtered.map((c) => (
-                <tr key={c.id} onClick={() => openClient(c)} className="hover:bg-muted/30 cursor-pointer transition-colors">
+                <tr
+                  key={c.id}
+                  onClick={() => openClient(c)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      openClient(c);
+                    }
+                  }}
+                  tabIndex={0}
+                  role="link"
+                  aria-label={`Apri scheda paziente ${c.first_name} ${c.last_name}`}
+                  className="hover:bg-muted/30 focus:bg-muted/40 focus:outline-none cursor-pointer transition-colors"
+                >
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       <Avatar className="size-8">
