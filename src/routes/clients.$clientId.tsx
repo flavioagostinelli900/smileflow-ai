@@ -187,6 +187,8 @@ function ClientDetail() {
               {convs.length === 0 && <p className="text-sm text-muted-foreground py-4 text-center">Nessuna conversazione</p>}
             </div>
           </Card>
+
+          <UpsellSection clientId={clientId} appts={appts} />
         </div>
 
         <div className="space-y-6">
