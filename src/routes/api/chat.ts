@@ -4,6 +4,58 @@ import "@tanstack/react-start";
 import { generateText } from "ai";
 import { createClient } from "@supabase/supabase-js";
 
+const CLINICAL_SPECIFIC_PATTERNS = [
+  /impiant[io]/i,
+  /implantologia/i,
+  /osso|rigenerazione|innesto/i,
+  /dolore|gonfiore|sanguin|infezion|ascesso/i,
+  /antibiotic|farmac|medicin/i,
+  /diagnos|terapia|preventivo preciso/i,
+  /radiografia|tac|ortopanoramica/i,
+];
+
+function isClinicalSpecificQuestion(message: string) {
+  const text = message.trim();
+  if (!text) return false;
+  return CLINICAL_SPECIFIC_PATTERNS.some((pattern) => pattern.test(text));
+}
+
+async function createControlVisitAndReply({
+  supabase,
+  conversationId,
+  clientId,
+  clientName,
+  futureControl,
+}: {
+  supabase: ReturnType<typeof createClient>;
+  conversationId: string;
+  clientId: string;
+  clientName?: string;
+  futureControl?: { starts_at?: string | null } | null;
+}) {
+  if (futureControl?.starts_at) {
+    return `Certo${clientName ? ` ${clientName}` : ""}, per queste informazioni serve prima una visita di controllo. Ho già una prenotazione aperta per te il ${new Date(futureControl.starts_at).toLocaleString("it", { weekday: "long", day: "2-digit", month: "long", hour: "2-digit", minute: "2-digit" })}.`;
+  }
+
+  const starts = new Date();
+  starts.setDate(starts.getDate() + 2);
+  starts.setHours(10, 0, 0, 0);
+
+  const { data: operator } = await supabase.from("operators").select("id").limit(1).maybeSingle();
+  await supabase.from("appointments").insert({
+    client_id: clientId,
+    operator_id: operator?.id ?? null,
+    visit_type: "Controllo",
+    duration_minutes: 30,
+    starts_at: starts.toISOString(),
+    status: "scheduled",
+    source: "ai_chat",
+    notes: `Prenotazione automatica da chat ${conversationId}: nuovo cliente con richiesta clinica specifica.`,
+  });
+
+  return `Certo${clientName ? ` ${clientName}` : ""}, per queste informazioni serve prima una visita di controllo. Ti ho prenotato un controllo per ${starts.toLocaleString("it", { weekday: "long", day: "2-digit", month: "long", hour: "2-digit", minute: "2-digit" })}; se preferisci un altro orario ti richiama la segreteria.`;
+}
+
 export const Route = createFileRoute("/api/chat")({
   server: {
     handlers: {
