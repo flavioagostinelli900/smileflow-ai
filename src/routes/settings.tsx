@@ -8,145 +8,168 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Phone, MessageSquare, Sparkles, Zap } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Building2, Clock, Stethoscope, Phone, MessageSquare, Save, Plus, Trash2 } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { api, type StudioSettings, type OpeningHour, type VisitType } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect } from "react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/settings")({
   component: Settings,
   head: () => ({ meta: [{ title: "Configurazione · DentAI" }] }),
 });
 
-const templates = [
-  { name: "Recupero inattivo", text: "Ciao {nome}! Sono passati {mesi} mesi dall'ultima visita…" },
-  { name: "Promemoria appuntamento", text: "Ciao {nome}, ti ricordiamo l'appuntamento del {data} alle {ora}…" },
-  { name: "Richiamo igiene", text: "{nome}, sono passati 6 mesi! È il momento dell'igiene 🦷" },
-  { name: "Post visita", text: "Ciao {nome}, come stai dopo la visita di ieri? Tutto bene?" },
-];
-
-const automations = [
-  { name: "Risposta chiamata persa", desc: "WhatsApp automatico entro 60 secondi", on: true },
-  { name: "Promemoria 24h prima", desc: "Conferma appuntamento via WhatsApp", on: true },
-  { name: "Recupero inattivi mensile", desc: "Sequenza per pazienti >6 mesi", on: true },
-  { name: "Auguri compleanno", desc: "Messaggio personalizzato + sconto", on: false },
-];
+const templateLabels: Record<string, string> = {
+  followup_1: "Follow-up messaggio 1",
+  followup_2: "Follow-up messaggio 2",
+  followup_3: "Follow-up messaggio 3",
+  reminder_24h: "Reminder 24h",
+  reminder_2h: "Reminder 2h",
+  post_visit: "Post-visita / recensione",
+};
 
 function Settings() {
+  const qc = useQueryClient();
+  const { data: settings } = useQuery({
+    queryKey: ["studio-settings"],
+    queryFn: async () => {
+      const { data, error } = await api.studioSettings();
+      if (error) throw error;
+      return data as StudioSettings | null;
+    },
+  });
+
+  const [draft, setDraft] = useState<StudioSettings | null>(null);
+  useEffect(() => { if (settings) setDraft(settings); }, [settings]);
+
+  if (!draft) return <AppLayout><div className="text-muted-foreground">Caricamento…</div></AppLayout>;
+
+  const save = async (patch: Partial<StudioSettings>) => {
+    const { error } = await supabase.from("studio_settings").update(patch).eq("id", draft.id);
+    if (error) toast.error(error.message); else { toast.success("Configurazione salvata"); qc.invalidateQueries({ queryKey: ["studio-settings"] }); }
+  };
+
+  const updateDay = (i: number, patch: Partial<OpeningHour>) => {
+    const hours = [...draft.opening_hours]; hours[i] = { ...hours[i], ...patch };
+    setDraft({ ...draft, opening_hours: hours });
+  };
+  const updateVisit = (i: number, patch: Partial<VisitType>) => {
+    const v = [...draft.visit_types]; v[i] = { ...v[i], ...patch };
+    setDraft({ ...draft, visit_types: v });
+  };
+  const addVisit = () => setDraft({ ...draft, visit_types: [...draft.visit_types, { name: "Nuova visita", minutes: 30, ai_booking: false }] });
+  const removeVisit = (i: number) => setDraft({ ...draft, visit_types: draft.visit_types.filter((_, idx) => idx !== i) });
+
   return (
     <AppLayout>
-      <Tabs defaultValue="numbers" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="numbers">Numeri & WhatsApp</TabsTrigger>
-          <TabsTrigger value="templates">Template messaggi</TabsTrigger>
-          <TabsTrigger value="automations">Automazioni</TabsTrigger>
-          <TabsTrigger value="ai">AI Assistant</TabsTrigger>
+      <Tabs defaultValue="studio" className="space-y-6">
+        <TabsList className="flex-wrap h-auto">
+          <TabsTrigger value="studio"><Building2 className="size-3.5 mr-1.5" />Dati studio</TabsTrigger>
+          <TabsTrigger value="hours"><Clock className="size-3.5 mr-1.5" />Orari</TabsTrigger>
+          <TabsTrigger value="visits"><Stethoscope className="size-3.5 mr-1.5" />Durate visite</TabsTrigger>
+          <TabsTrigger value="whatsapp"><Phone className="size-3.5 mr-1.5" />WhatsApp</TabsTrigger>
+          <TabsTrigger value="messages"><MessageSquare className="size-3.5 mr-1.5" />Messaggi</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="numbers" className="space-y-4">
-          <Card className="p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="size-10 rounded-lg bg-accent text-accent-foreground flex items-center justify-center">
-                <Phone className="size-5" />
-              </div>
-              <div>
-                <h3 className="font-semibold">Numero AI dedicato</h3>
-                <p className="text-xs text-muted-foreground">Twilio · gestito automaticamente</p>
-              </div>
-              <Badge className="ml-auto bg-success/15 text-success hover:bg-success/15">Attivo</Badge>
-            </div>
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label>Numero AI</Label>
-                <Input value="+39 02 9988 7766" readOnly />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Twilio Account SID</Label>
-                <Input value="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" readOnly />
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="size-10 rounded-lg bg-success/15 text-success flex items-center justify-center">
-                <MessageSquare className="size-5" />
-              </div>
-              <div>
-                <h3 className="font-semibold">WhatsApp Studio (storico)</h3>
-                <p className="text-xs text-muted-foreground">Numero originale dello studio</p>
-              </div>
-              <Badge className="ml-auto bg-success/15 text-success hover:bg-success/15">Connesso</Badge>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Numero WhatsApp</Label>
-              <Input value="+39 02 1234 5678" />
-            </div>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="templates" className="space-y-3">
-          {templates.map((t) => (
-            <Card key={t.name} className="p-5">
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="font-medium">{t.name}</h4>
-                <Button variant="ghost" size="sm">Modifica</Button>
-              </div>
-              <Textarea value={t.text} readOnly className="resize-none" rows={2} />
-            </Card>
-          ))}
-        </TabsContent>
-
-        <TabsContent value="automations" className="space-y-3">
-          {automations.map((a) => (
-            <Card key={a.name} className="p-5 flex items-center gap-4">
-              <div className="size-10 rounded-lg bg-accent text-accent-foreground flex items-center justify-center">
-                <Zap className="size-5" />
-              </div>
-              <div className="flex-1">
-                <h4 className="font-medium">{a.name}</h4>
-                <p className="text-xs text-muted-foreground">{a.desc}</p>
-              </div>
-              <Switch defaultChecked={a.on} />
-            </Card>
-          ))}
-        </TabsContent>
-
-        <TabsContent value="ai">
+        <TabsContent value="studio">
           <Card className="p-6 space-y-4">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="size-10 rounded-lg bg-gradient-primary flex items-center justify-center">
-                <Sparkles className="size-5 text-primary-foreground" />
-              </div>
-              <div>
-                <h3 className="font-semibold">Personalità AI</h3>
-                <p className="text-xs text-muted-foreground">Tono di voce e regole conversazione</p>
-              </div>
+            <h3 className="font-semibold mb-2">Dati studio</h3>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div><Label>Nome studio</Label><Input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} /></div>
+              <div><Label>Indirizzo</Label><Input value={draft.address ?? ""} onChange={(e) => setDraft({ ...draft, address: e.target.value })} /></div>
+              <div><Label>Numero fisso</Label><Input value={draft.phone ?? ""} onChange={(e) => setDraft({ ...draft, phone: e.target.value })} /></div>
+              <div><Label>WhatsApp AI</Label><Input value={draft.whatsapp_ai ?? ""} onChange={(e) => setDraft({ ...draft, whatsapp_ai: e.target.value })} /></div>
             </div>
-            <div className="space-y-1.5">
-              <Label>Nome assistente</Label>
-              <Input defaultValue="Sofia · Studio Rossi" />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Tono</Label>
-              <Input defaultValue="Professionale, caldo, empatico" />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Lingue supportate</Label>
-              <div className="flex gap-2">
-                {["IT", "EN", "ES", "FR", "DE"].map((l) => (
-                  <Badge key={l} variant={l === "IT" || l === "EN" ? "default" : "outline"}>{l}</Badge>
-                ))}
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Istruzioni custom</Label>
-              <Textarea
-                rows={4}
-                defaultValue="Rispondi sempre in modo professionale. Proponi sempre 2 slot disponibili. Non dare mai consigli medici. Per emergenze, indirizza al numero studio."
-              />
-            </div>
-            <div className="pt-2">
-              <Button className="bg-gradient-primary">Salva configurazione</Button>
-            </div>
+            <Button onClick={() => save({ name: draft.name, address: draft.address, phone: draft.phone, whatsapp_ai: draft.whatsapp_ai })} className="bg-gradient-primary"><Save className="size-4 mr-1.5" />Salva</Button>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="hours">
+          <Card className="p-6">
+            <h3 className="font-semibold mb-4">Orari di apertura</h3>
+            <div className="space-y-3">
+              {draft.opening_hours.map((d, i) => (
+                <div key={d.day} className="grid grid-cols-[110px_1fr_1fr_auto] items-center gap-3 p-3 rounded-lg bg-muted/30">
+                  <div className="font-medium text-sm">{d.day}</div>
+                  <div><Input type="time" value={d.open} onChange={(e) => updateDay(i, { open: e.target.value })} disabled={!d.active} /></div>
+                  <div><Input type="time" value={d.close} onChange={(e) => updateDay(i, { close: e.target.value })} disabled={!d.active} /></div>
+                  <div className="flex items-center gap-2">
+                    <Switch checked={d.active} onCheckedChange={(v) => updateDay(i, { active: v })} />
+                    <span className="text-xs text-muted-foreground w-12">{d.active ? "Aperto" : "Chiuso"}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <Button onClick={() => save({ opening_hours: draft.opening_hours })} className="mt-4 bg-gradient-primary"><Save className="size-4 mr-1.5" />Salva orari</Button>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="visits">
+          <Card className="p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-semibold">Durate visite</h3>
+              <Button size="sm" variant="outline" onClick={addVisit}><Plus className="size-4 mr-1.5" />Tipo visita</Button>
+            </div>
+            <div className="space-y-3">
+              {draft.visit_types.map((v, i) => (
+                <div key={i} className="grid grid-cols-[1fr_120px_180px_auto] items-center gap-3 p-3 rounded-lg bg-muted/30">
+                  <Input value={v.name} onChange={(e) => updateVisit(i, { name: e.target.value })} placeholder="Nome visita" />
+                  <div className="flex items-center gap-2">
+                    <Input type="number" value={v.minutes} onChange={(e) => updateVisit(i, { minutes: Number(e.target.value) })} className="w-20" />
+                    <span className="text-xs text-muted-foreground">min</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Switch checked={v.ai_booking} onCheckedChange={(b) => updateVisit(i, { ai_booking: b })} />
+                    <span className="text-xs text-muted-foreground">Prenotazione AI</span>
+                  </div>
+                  <Button size="icon" variant="ghost" onClick={() => removeVisit(i)} className="text-destructive"><Trash2 className="size-4" /></Button>
+                </div>
+              ))}
+            </div>
+            <Button onClick={() => save({ visit_types: draft.visit_types })} className="mt-4 bg-gradient-primary"><Save className="size-4 mr-1.5" />Salva</Button>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="whatsapp">
+          <Card className="p-6">
+            <h3 className="font-semibold mb-4">Numero WhatsApp</h3>
+            <RadioGroup value={draft.whatsapp_mode} onValueChange={(v) => setDraft({ ...draft, whatsapp_mode: v as "dedicated" | "studio" })} className="space-y-3">
+              <label className="flex items-start gap-3 p-4 rounded-lg border cursor-pointer hover:bg-muted/30 has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+                <RadioGroupItem value="dedicated" className="mt-1" />
+                <div className="flex-1">
+                  <div className="font-medium flex items-center gap-2">Numero dedicato AI <Badge className="bg-primary/15 text-primary">Consigliato</Badge></div>
+                  <p className="text-xs text-muted-foreground mt-1">Un nuovo numero gestito al 100% dall'AI per follow-up, recupero clienti e prenotazioni automatiche, senza interferire con il numero storico dello studio.</p>
+                  <Input className="mt-2" value={draft.whatsapp_ai ?? ""} onChange={(e) => setDraft({ ...draft, whatsapp_ai: e.target.value })} placeholder="+39 ..." />
+                </div>
+              </label>
+              <label className="flex items-start gap-3 p-4 rounded-lg border cursor-pointer hover:bg-muted/30 has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+                <RadioGroupItem value="studio" className="mt-1" />
+                <div className="flex-1">
+                  <div className="font-medium">Numero storico studio</div>
+                  <p className="text-xs text-muted-foreground mt-1">L'AI risponde sul numero esistente dello studio. I pazienti vedono il numero che già conoscono, ma operatore e AI condividono lo stesso canale.</p>
+                  <Input className="mt-2" value={draft.whatsapp_studio ?? ""} onChange={(e) => setDraft({ ...draft, whatsapp_studio: e.target.value })} placeholder="+39 ..." />
+                </div>
+              </label>
+            </RadioGroup>
+            <Button onClick={() => save({ whatsapp_mode: draft.whatsapp_mode, whatsapp_ai: draft.whatsapp_ai, whatsapp_studio: draft.whatsapp_studio })} className="mt-4 bg-gradient-primary"><Save className="size-4 mr-1.5" />Salva</Button>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="messages" className="space-y-3">
+          {Object.keys(templateLabels).map((k) => (
+            <Card key={k} className="p-5">
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="font-medium">{templateLabels[k]}</h4>
+                <Badge variant="outline" className="text-[10px] font-mono">{`{nome} {ora} {data}`}</Badge>
+              </div>
+              <Textarea value={draft.message_templates?.[k] ?? ""}
+                onChange={(e) => setDraft({ ...draft, message_templates: { ...draft.message_templates, [k]: e.target.value } })}
+                rows={2} />
+            </Card>
+          ))}
+          <Button onClick={() => save({ message_templates: draft.message_templates })} className="bg-gradient-primary"><Save className="size-4 mr-1.5" />Salva messaggi</Button>
         </TabsContent>
       </Tabs>
     </AppLayout>
