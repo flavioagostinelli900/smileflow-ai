@@ -29,6 +29,28 @@ export type Conversation = {
   assigned_operator_id: string | null;
   last_message_at: string;
   channel: string;
+  tags: string[];
+  internal_notes: string | null;
+};
+
+export type WorkflowStep = {
+  id: string;
+  type: "trigger" | "wait" | "message" | "ai_chat" | "booking" | "condition";
+  label: string;
+  config?: Record<string, string | number>;
+};
+
+export type FollowupSequence = {
+  id: string;
+  name: string;
+  target: string;
+  trigger_type: string;
+  steps: number;
+  active: boolean;
+  messages_sent: number;
+  conversion_rate: number;
+  steps_config: WorkflowStep[];
+  created_at: string;
 };
 
 export type Message = {
