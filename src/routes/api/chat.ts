@@ -27,7 +27,7 @@ async function createControlVisitAndReply({
   clientName,
   futureControl,
 }: {
-  supabase: ReturnType<typeof createClient>;
+  supabase: any;
   conversationId: string;
   clientId: string;
   clientName?: string;
@@ -41,7 +41,7 @@ async function createControlVisitAndReply({
   starts.setDate(starts.getDate() + 2);
   starts.setHours(10, 0, 0, 0);
 
-  const { data: operator } = await supabase.from("operators").select("id").limit(1).maybeSingle();
+  const { data: operator } = await supabase.from("operators").select("id").limit(1).maybeSingle() as { data: { id: string } | null };
   await supabase.from("appointments").insert({
     client_id: clientId,
     operator_id: operator?.id ?? null,
