@@ -90,7 +90,7 @@ function Settings() {
               <div><Label>Numero fisso</Label><Input value={draft.phone ?? ""} onChange={(e) => setDraft({ ...draft, phone: e.target.value })} /></div>
               <div><Label>WhatsApp AI</Label><Input value={draft.whatsapp_ai ?? ""} onChange={(e) => setDraft({ ...draft, whatsapp_ai: e.target.value })} /></div>
             </div>
-            <Button onClick={() => save({ name: draft.name, address: draft.address, phone: draft.phone, whatsapp_ai: draft.whatsapp_ai })} className="bg-gradient-primary"><Save className="size-4 mr-1.5" />Salva</Button>
+            {canManage && <Button onClick={() => save({ name: draft.name, address: draft.address, phone: draft.phone, whatsapp_ai: draft.whatsapp_ai })} className="bg-gradient-primary"><Save className="size-4 mr-1.5" />Salva</Button>}
           </Card>
         </TabsContent>
 
@@ -110,7 +110,7 @@ function Settings() {
                 </div>
               ))}
             </div>
-            <Button onClick={() => save({ opening_hours: draft.opening_hours })} className="mt-4 bg-gradient-primary"><Save className="size-4 mr-1.5" />Salva orari</Button>
+            {canManage && <Button onClick={() => save({ opening_hours: draft.opening_hours })} className="mt-4 bg-gradient-primary"><Save className="size-4 mr-1.5" />Salva orari</Button>}
           </Card>
         </TabsContent>
 
@@ -118,7 +118,7 @@ function Settings() {
           <Card className="p-6">
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-semibold">Durate visite</h3>
-              <Button size="sm" variant="outline" onClick={addVisit}><Plus className="size-4 mr-1.5" />Tipo visita</Button>
+              {canManage && <Button size="sm" variant="outline" onClick={addVisit}><Plus className="size-4 mr-1.5" />Tipo visita</Button>}
             </div>
             <div className="space-y-3">
               {draft.visit_types.map((v, i) => (
@@ -132,11 +132,11 @@ function Settings() {
                     <Switch checked={v.ai_booking} onCheckedChange={(b) => updateVisit(i, { ai_booking: b })} />
                     <span className="text-xs text-muted-foreground">Prenotazione AI</span>
                   </div>
-                  <Button size="icon" variant="ghost" onClick={() => removeVisit(i)} className="text-destructive"><Trash2 className="size-4" /></Button>
+                  {canManage && <Button size="icon" variant="ghost" onClick={() => removeVisit(i)} className="text-destructive"><Trash2 className="size-4" /></Button>}
                 </div>
               ))}
             </div>
-            <Button onClick={() => save({ visit_types: draft.visit_types })} className="mt-4 bg-gradient-primary"><Save className="size-4 mr-1.5" />Salva</Button>
+            {canManage && <Button onClick={() => save({ visit_types: draft.visit_types })} className="mt-4 bg-gradient-primary"><Save className="size-4 mr-1.5" />Salva</Button>}
           </Card>
         </TabsContent>
 
@@ -161,7 +161,7 @@ function Settings() {
                 </div>
               </label>
             </RadioGroup>
-            <Button onClick={() => save({ whatsapp_mode: draft.whatsapp_mode, whatsapp_ai: draft.whatsapp_ai, whatsapp_studio: draft.whatsapp_studio })} className="mt-4 bg-gradient-primary"><Save className="size-4 mr-1.5" />Salva</Button>
+            {canManage && <Button onClick={() => save({ whatsapp_mode: draft.whatsapp_mode, whatsapp_ai: draft.whatsapp_ai, whatsapp_studio: draft.whatsapp_studio })} className="mt-4 bg-gradient-primary"><Save className="size-4 mr-1.5" />Salva</Button>}
           </Card>
         </TabsContent>
 
@@ -177,7 +177,7 @@ function Settings() {
                 rows={2} />
             </Card>
           ))}
-          <Button onClick={() => save({ message_templates: draft.message_templates })} className="bg-gradient-primary"><Save className="size-4 mr-1.5" />Salva messaggi</Button>
+          {canManage && <Button onClick={() => save({ message_templates: draft.message_templates })} className="bg-gradient-primary"><Save className="size-4 mr-1.5" />Salva messaggi</Button>}
         </TabsContent>
       </Tabs>
       </fieldset>
