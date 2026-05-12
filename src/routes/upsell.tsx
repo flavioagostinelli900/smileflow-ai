@@ -152,7 +152,7 @@ function UpsellPage() {
                 <div className="text-[11px] text-muted-foreground truncate">→ {r.treatment}</div>
               </div>
             ))}
-          </div>
+          </fieldset>
         </Card>
       </div>
     </AppLayout>
