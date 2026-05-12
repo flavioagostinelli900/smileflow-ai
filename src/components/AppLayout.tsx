@@ -45,7 +45,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const current = nav.find((n) =>
+  const { isSuperAdmin, isAuthorizedAdmin } = usePermissions();
+  const fullNav = (isSuperAdmin || isAuthorizedAdmin)
+    ? [...nav, { to: "/admin", label: "Admin", icon: ShieldCheck }]
+    : nav;
+  const current = fullNav.find((n) =>
     n.to === "/" ? location.pathname === "/" : location.pathname.startsWith(n.to),
   );
   const initials = (user?.user_metadata?.full_name || user?.email || "DR")
