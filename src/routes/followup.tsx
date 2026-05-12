@@ -275,6 +275,7 @@ function WorkflowCard({ seq, canManage, onToggle, onEdit }: { seq: FollowupSeque
 
 function WorkflowBuilder({ open, onOpenChange, sequence }: { open: boolean; onOpenChange: (v: boolean) => void; sequence: FollowupSequence | null }) {
   const qc = useQueryClient();
+  const { canManage } = usePermissions();
   const [name, setName] = useState("");
   const [target, setTarget] = useState("");
   const [trigger, setTrigger] = useState("inactive_clients");
@@ -297,6 +298,7 @@ function WorkflowBuilder({ open, onOpenChange, sequence }: { open: boolean; onOp
   const updateStep = (id: string, patch: Partial<WorkflowStep>) => setSteps(steps.map((s) => s.id === id ? { ...s, ...patch } : s));
 
   const save = async () => {
+    if (!canManage) return;
     const { error } = await supabase.from("followup_sequences").update({
       name, target, trigger_type: trigger, steps: steps.length, steps_config: steps,
     }).eq("id", sequence.id);
@@ -305,6 +307,7 @@ function WorkflowBuilder({ open, onOpenChange, sequence }: { open: boolean; onOp
   };
 
   const remove = async () => {
+    if (!canManage) return;
     if (!confirm("Eliminare questo workflow?")) return;
     await supabase.from("followup_sequences").delete().eq("id", sequence.id);
     qc.invalidateQueries({ queryKey: ["sequences"] }); onOpenChange(false);
