@@ -43,6 +43,7 @@ const triggerOptions = [
 
 function FollowUp() {
   const qc = useQueryClient();
+  const { canManage } = usePermissions();
   const [editing, setEditing] = useState<FollowupSequence | null>(null);
 
   const { data: sequences = [] } = useQuery({
