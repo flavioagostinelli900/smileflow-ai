@@ -133,7 +133,7 @@ function FollowUp() {
   );
 }
 
-function BlocksTab() {
+function BlocksTab({ canManage }: { canManage: boolean }) {
   const qc = useQueryClient();
   const { data: blocks = [] } = useQuery({
     queryKey: ["patient-blocks"],
@@ -148,6 +148,7 @@ function BlocksTab() {
   const totalPatients = blocks.reduce((a, b) => a + b.total, 0);
 
   const activateNext = async () => {
+    if (!canManage) return;
     const next = blocks.find((b) => b.status === "pending");
     if (!next) { toast.info("Nessun blocco in attesa"); return; }
     await supabase.from("patient_blocks").update({ status: "in_progress", scheduled_for: new Date().toISOString().slice(0, 10) }).eq("id", next.id);
@@ -174,7 +175,7 @@ function BlocksTab() {
             <div className="text-xs text-muted-foreground mb-1">Prossimo blocco</div>
             <div className="text-sm font-semibold">#{blocks.find((b) => b.status === "pending")?.block_number ?? "—"}</div>
           </div>
-          <Button size="sm" className="bg-gradient-primary" onClick={activateNext}><PlayCircle className="size-4 mr-1.5" />Attiva ora</Button>
+          {canManage && <Button size="sm" className="bg-gradient-primary" onClick={activateNext}><PlayCircle className="size-4 mr-1.5" />Attiva ora</Button>}
         </Card>
       </div>
 
