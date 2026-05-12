@@ -22,6 +22,9 @@ import {
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ShieldCheck } from "lucide-react";
+import { usePermissions } from "@/lib/usePermissions";
+import { ImpersonationBar } from "@/components/ImpersonationBar";
 
 const nav = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
