@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Filter, Download, Search, Upload } from "lucide-react";
+import { Plus, Filter, Download, Search, Upload, Sparkles } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, type Client } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,7 +14,6 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { ImportClientsDialog } from "@/components/ImportClientsDialog";
 import { usePermissions } from "@/lib/usePermissions";
-import { Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/clients")({
   component: Clients,
