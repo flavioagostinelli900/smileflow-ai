@@ -14,6 +14,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { ImportClientsDialog } from "@/components/ImportClientsDialog";
 import { usePermissions } from "@/lib/usePermissions";
+import { ReadOnlyBanner } from "@/components/ReadOnlyBanner";
 
 export const Route = createFileRoute("/clients")({
   component: Clients,
@@ -79,6 +80,7 @@ function ClientsList() {
 
   return (
     <AppLayout>
+      {!canManage && <ReadOnlyBanner className="mb-4" />}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         <Card className="p-4"><div className="text-xs text-muted-foreground mb-1">Totale pazienti</div><div className="text-2xl font-semibold">{stats.total}</div></Card>
         <Card className="p-4"><div className="text-xs text-muted-foreground mb-1">Attivi</div><div className="text-2xl font-semibold text-success">{stats.active}</div></Card>
