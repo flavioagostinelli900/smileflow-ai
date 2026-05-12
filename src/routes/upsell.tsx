@@ -93,6 +93,7 @@ function UpsellPage() {
 
   return (
     <AppLayout>
+      {!canManage && <ReadOnlyBanner className="mb-4" />}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         <Card className="p-4"><div className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5"><Send className="size-3.5" />Inviate (mese)</div><div className="text-2xl font-semibold">{monthOffers.length}</div></Card>
         <Card className="p-4"><div className="text-xs text-muted-foreground mb-1">Accettate</div><div className="text-2xl font-semibold text-success">{accepted.length}</div></Card>
