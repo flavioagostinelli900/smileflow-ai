@@ -178,6 +178,7 @@ function Settings() {
           <Button onClick={() => save({ message_templates: draft.message_templates })} className="bg-gradient-primary"><Save className="size-4 mr-1.5" />Salva messaggi</Button>
         </TabsContent>
       </Tabs>
+      </fieldset>
     </AppLayout>
   );
 }
