@@ -15,6 +15,8 @@ import { api, type StudioSettings, type OpeningHour, type VisitType } from "@/li
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { usePermissions } from "@/lib/usePermissions";
+import { ReadOnlyBanner } from "@/components/ReadOnlyBanner";
 
 export const Route = createFileRoute("/settings")({
   component: Settings,
