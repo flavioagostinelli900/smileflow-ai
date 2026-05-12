@@ -15,6 +15,7 @@ export const Route = createFileRoute("/operators")({
 });
 
 function Operators() {
+  const { canManage } = usePermissions();
   const { data: ops = [] } = useQuery({
     queryKey: ["operators"],
     queryFn: async () => {
