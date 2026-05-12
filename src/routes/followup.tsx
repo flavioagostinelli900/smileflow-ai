@@ -43,7 +43,7 @@ const triggerOptions = [
 
 function FollowUp() {
   const qc = useQueryClient();
-  const { canManage } = usePermissions();
+  const { canManage, loading: permissionsLoading } = usePermissions();
   const [editing, setEditing] = useState<FollowupSequence | null>(null);
 
   const { data: sequences = [] } = useQuery({
@@ -56,11 +56,13 @@ function FollowUp() {
   });
 
   const toggle = async (s: FollowupSequence) => {
+    if (!canManage) return;
     await supabase.from("followup_sequences").update({ active: !s.active }).eq("id", s.id);
     qc.invalidateQueries({ queryKey: ["sequences"] });
   };
 
   const createNew = async () => {
+    if (!canManage) return;
     const { data, error } = await supabase.from("followup_sequences").insert({
       name: "Nuovo workflow", target: "Da definire", trigger_type: "inactive_clients", steps: 1, active: false,
       steps_config: [{ id: crypto.randomUUID(), type: "trigger", label: "Trigger evento" }],
@@ -70,6 +72,10 @@ function FollowUp() {
 
   const totalSent = sequences.reduce((a, s) => a + (s.messages_sent || 0), 0);
   const avgConv = sequences.length ? Math.round(sequences.reduce((a, s) => a + Number(s.conversion_rate || 0), 0) / sequences.length) : 0;
+
+  if (permissionsLoading) {
+    return <AppLayout><div className="flex items-center gap-2 text-sm text-muted-foreground"><Sparkles className="size-4 animate-pulse text-primary" />Caricamento permessi…</div></AppLayout>;
+  }
 
   return (
     <AppLayout>
@@ -93,12 +99,12 @@ function FollowUp() {
 
           <div className="grid lg:grid-cols-2 gap-4">
             {sequences.map((s) => (
-              <WorkflowCard key={s.id} seq={s} onToggle={() => toggle(s)} onEdit={() => setEditing(s)} />
+              <WorkflowCard key={s.id} seq={s} canManage={canManage} onToggle={() => toggle(s)} onEdit={() => canManage && setEditing(s)} />
             ))}
           </div>
         </TabsContent>
 
-        <TabsContent value="blocks"><BlocksTab /></TabsContent>
+        <TabsContent value="blocks"><BlocksTab canManage={canManage} /></TabsContent>
 
         <TabsContent value="analytics">
           <Card className="p-6">
@@ -122,7 +128,7 @@ function FollowUp() {
         </TabsContent>
       </Tabs>
 
-      <WorkflowBuilder open={!!editing} onOpenChange={(v) => !v && setEditing(null)} sequence={editing} />
+      <WorkflowBuilder open={!!editing && canManage} onOpenChange={(v) => !v && setEditing(null)} sequence={editing} />
     </AppLayout>
   );
 }
