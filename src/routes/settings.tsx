@@ -71,7 +71,6 @@ function Settings() {
   return (
     <AppLayout>
       {ro && <ReadOnlyBanner className="mb-4" />}
-      <fieldset disabled={ro} className={ro ? "opacity-90" : ""}>
       <Tabs defaultValue="studio" className="space-y-6">
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="studio"><Building2 className="size-3.5 mr-1.5" />Dati studio</TabsTrigger>
@@ -80,6 +79,7 @@ function Settings() {
           <TabsTrigger value="whatsapp"><Phone className="size-3.5 mr-1.5" />WhatsApp</TabsTrigger>
           <TabsTrigger value="messages"><MessageSquare className="size-3.5 mr-1.5" />Messaggi</TabsTrigger>
         </TabsList>
+        <fieldset disabled={ro} className={ro ? "opacity-90" : ""}>
 
         <TabsContent value="studio">
           <Card className="p-6 space-y-4">
@@ -179,8 +179,8 @@ function Settings() {
           ))}
           {canManage && <Button onClick={() => save({ message_templates: draft.message_templates })} className="bg-gradient-primary"><Save className="size-4 mr-1.5" />Salva messaggi</Button>}
         </TabsContent>
+        </fieldset>
       </Tabs>
-      </fieldset>
     </AppLayout>
   );
 }
