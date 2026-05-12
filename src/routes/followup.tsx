@@ -15,6 +15,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { usePermissions } from "@/lib/usePermissions";
+import { ReadOnlyBanner } from "@/components/ReadOnlyBanner";
 
 export const Route = createFileRoute("/followup")({
   component: FollowUp,
@@ -41,6 +43,7 @@ const triggerOptions = [
 
 function FollowUp() {
   const qc = useQueryClient();
+  const { canManage } = usePermissions();
   const [editing, setEditing] = useState<FollowupSequence | null>(null);
 
   const { data: sequences = [] } = useQuery({
@@ -70,6 +73,7 @@ function FollowUp() {
 
   return (
     <AppLayout>
+      {!canManage && <ReadOnlyBanner className="mb-4" />}
       <Tabs defaultValue="workflows" className="space-y-6">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <TabsList>
@@ -77,7 +81,7 @@ function FollowUp() {
             <TabsTrigger value="blocks"><Database className="size-3.5 mr-1.5" />Blocchi DB</TabsTrigger>
             <TabsTrigger value="analytics">Conversioni</TabsTrigger>
           </TabsList>
-          <Button size="sm" className="bg-gradient-primary" onClick={createNew}><Plus className="size-4 mr-1.5" />Nuovo workflow</Button>
+          {canManage && <Button size="sm" className="bg-gradient-primary" onClick={createNew}><Plus className="size-4 mr-1.5" />Nuovo workflow</Button>}
         </div>
 
         <TabsContent value="workflows" className="space-y-4">

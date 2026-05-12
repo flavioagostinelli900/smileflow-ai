@@ -22,6 +22,9 @@ import {
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ShieldCheck } from "lucide-react";
+import { usePermissions } from "@/lib/usePermissions";
+import { ImpersonationBar } from "@/components/ImpersonationBar";
 
 const nav = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -42,7 +45,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const current = nav.find((n) =>
+  const { isSuperAdmin, isAuthorizedAdmin } = usePermissions();
+  const fullNav = (isSuperAdmin || isAuthorizedAdmin)
+    ? [...nav, { to: "/admin", label: "Admin", icon: ShieldCheck }]
+    : nav;
+  const current = fullNav.find((n) =>
     n.to === "/" ? location.pathname === "/" : location.pathname.startsWith(n.to),
   );
   const initials = (user?.user_metadata?.full_name || user?.email || "DR")
@@ -68,7 +75,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
 
         <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
-          {nav.map((item) => {
+          {fullNav.map((item) => {
             const active =
               item.to === "/"
                 ? location.pathname === "/"
@@ -133,7 +140,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             </AvatarFallback>
           </Avatar>
         </header>
-
+        <ImpersonationBar />
         <main className="flex-1 p-4 md:p-8">{children}</main>
       </div>
     </div>

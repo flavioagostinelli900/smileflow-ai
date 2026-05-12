@@ -13,6 +13,8 @@ import { expireOldOffers } from "@/lib/upsell";
 import { useEffect } from "react";
 import { toast } from "sonner";
 import type { Client } from "@/lib/api";
+import { usePermissions } from "@/lib/usePermissions";
+import { ReadOnlyBanner } from "@/components/ReadOnlyBanner";
 
 export const Route = createFileRoute("/upsell")({
   component: UpsellPage,
@@ -37,6 +39,7 @@ const statusBadge = (s: UpsellOffer["status"]) => {
 
 function UpsellPage() {
   const qc = useQueryClient();
+  const { canManage } = usePermissions();
 
   useEffect(() => { expireOldOffers().then(() => qc.invalidateQueries({ queryKey: ["upsell-offers"] })); }, [qc]);
 
@@ -90,6 +93,7 @@ function UpsellPage() {
 
   return (
     <AppLayout>
+      {!canManage && <ReadOnlyBanner className="mb-4" />}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         <Card className="p-4"><div className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5"><Send className="size-3.5" />Inviate (mese)</div><div className="text-2xl font-semibold">{monthOffers.length}</div></Card>
         <Card className="p-4"><div className="text-xs text-muted-foreground mb-1">Accettate</div><div className="text-2xl font-semibold text-success">{accepted.length}</div></Card>
@@ -124,7 +128,7 @@ function UpsellPage() {
 
         <Card className="p-5 lg:col-span-2">
           <h3 className="font-semibold mb-4 flex items-center gap-2"><Sparkles className="size-4 text-primary" />Configurazione regole</h3>
-          <div className="space-y-3">
+          <fieldset disabled={!canManage} className="space-y-3">
             {rules.map((r) => (
               <div key={r.id} className="p-3 rounded-lg border space-y-2">
                 <div className="flex items-center gap-2">
@@ -148,7 +152,7 @@ function UpsellPage() {
                 <div className="text-[11px] text-muted-foreground truncate">→ {r.treatment}</div>
               </div>
             ))}
-          </div>
+          </fieldset>
         </Card>
       </div>
     </AppLayout>

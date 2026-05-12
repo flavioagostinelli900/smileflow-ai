@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import { toast } from "sonner";
 import { ImportClientsDialog } from "@/components/ImportClientsDialog";
+import { usePermissions } from "@/lib/usePermissions";
 
 export const Route = createFileRoute("/clients")({
   component: Clients,
@@ -31,6 +32,7 @@ function Clients() {
 
 function ClientsList() {
   const qc = useQueryClient();
+  const { canManage } = usePermissions();
   const navigate = useNavigate();
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -100,9 +102,9 @@ function ClientsList() {
           </SelectContent>
         </Select>
         <Button variant="outline" size="sm"><Filter className="size-4 mr-1.5" />Segmenti</Button>
-        <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}><Upload className="size-4 mr-1.5" />Importa database</Button>
+        {canManage && <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}><Upload className="size-4 mr-1.5" />Importa database</Button>}
         <Button variant="outline" size="sm"><Download className="size-4 mr-1.5" />Esporta</Button>
-        <Button size="sm" className="bg-gradient-primary" onClick={createClient}><Plus className="size-4 mr-1.5" />Nuovo</Button>
+        {canManage && <Button size="sm" className="bg-gradient-primary" onClick={createClient}><Plus className="size-4 mr-1.5" />Nuovo</Button>}
       </Card>
 
       <ImportClientsDialog open={importOpen} onOpenChange={setImportOpen} onDone={() => qc.invalidateQueries({ queryKey: ["clients"] })} />

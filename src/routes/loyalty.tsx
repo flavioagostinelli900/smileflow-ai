@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Gift, Tag, Clock, TrendingUp } from "lucide-react";
+import { usePermissions } from "@/lib/usePermissions";
+import { ReadOnlyBanner } from "@/components/ReadOnlyBanner";
 
 export const Route = createFileRoute("/loyalty")({
   component: Loyalty,
@@ -19,8 +21,10 @@ const rewards = [
 ];
 
 function Loyalty() {
+  const { canManage } = usePermissions();
   return (
     <AppLayout>
+      {!canManage && <ReadOnlyBanner className="mb-4" />}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <Card className="p-5">
           <Gift className="size-5 text-primary mb-3" />
@@ -50,7 +54,7 @@ function Loyalty() {
             <h3 className="font-semibold">Programma fedeltà</h3>
             <p className="text-xs text-muted-foreground">Premi e scontistiche automatiche via WhatsApp</p>
           </div>
-          <Button className="bg-gradient-primary" size="sm">Nuovo premio</Button>
+          {canManage && <Button className="bg-gradient-primary" size="sm">Nuovo premio</Button>}
         </div>
         <div className="divide-y">
           {rewards.map((r) => (

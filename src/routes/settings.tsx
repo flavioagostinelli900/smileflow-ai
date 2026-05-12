@@ -15,6 +15,8 @@ import { api, type StudioSettings, type OpeningHour, type VisitType } from "@/li
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { usePermissions } from "@/lib/usePermissions";
+import { ReadOnlyBanner } from "@/components/ReadOnlyBanner";
 
 export const Route = createFileRoute("/settings")({
   component: Settings,
@@ -32,6 +34,8 @@ const templateLabels: Record<string, string> = {
 
 function Settings() {
   const qc = useQueryClient();
+  const { canManage } = usePermissions();
+  const ro = !canManage;
   const { data: settings } = useQuery({
     queryKey: ["studio-settings"],
     queryFn: async () => {
@@ -64,6 +68,8 @@ function Settings() {
 
   return (
     <AppLayout>
+      {ro && <ReadOnlyBanner className="mb-4" />}
+      <fieldset disabled={ro} className={ro ? "opacity-90" : ""}>
       <Tabs defaultValue="studio" className="space-y-6">
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="studio"><Building2 className="size-3.5 mr-1.5" />Dati studio</TabsTrigger>
@@ -172,6 +178,7 @@ function Settings() {
           <Button onClick={() => save({ message_templates: draft.message_templates })} className="bg-gradient-primary"><Save className="size-4 mr-1.5" />Salva messaggi</Button>
         </TabsContent>
       </Tabs>
+      </fieldset>
     </AppLayout>
   );
 }

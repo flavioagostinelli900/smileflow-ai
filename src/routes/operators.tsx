@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Plus, Calendar } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { api, type Operator } from "@/lib/api";
+import { usePermissions } from "@/lib/usePermissions";
 
 export const Route = createFileRoute("/operators")({
   component: Operators,
@@ -14,6 +15,7 @@ export const Route = createFileRoute("/operators")({
 });
 
 function Operators() {
+  const { canManage } = usePermissions();
   const { data: ops = [] } = useQuery({
     queryKey: ["operators"],
     queryFn: async () => {
@@ -27,7 +29,7 @@ function Operators() {
     <AppLayout>
       <div className="flex justify-between items-center mb-6">
         <p className="text-sm text-muted-foreground">{ops.length} collaboratori</p>
-        <Button className="bg-gradient-primary" size="sm"><Plus className="size-4 mr-1.5" />Nuovo operatore</Button>
+        {canManage && <Button className="bg-gradient-primary" size="sm"><Plus className="size-4 mr-1.5" />Nuovo operatore</Button>}
       </div>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
