@@ -68,6 +68,8 @@ function Settings() {
 
   return (
     <AppLayout>
+      {ro && <ReadOnlyBanner className="mb-4" />}
+      <fieldset disabled={ro} className={ro ? "opacity-90" : ""}>
       <Tabs defaultValue="studio" className="space-y-6">
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="studio"><Building2 className="size-3.5 mr-1.5" />Dati studio</TabsTrigger>
