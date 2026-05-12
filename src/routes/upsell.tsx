@@ -13,6 +13,8 @@ import { expireOldOffers } from "@/lib/upsell";
 import { useEffect } from "react";
 import { toast } from "sonner";
 import type { Client } from "@/lib/api";
+import { usePermissions } from "@/lib/usePermissions";
+import { ReadOnlyBanner } from "@/components/ReadOnlyBanner";
 
 export const Route = createFileRoute("/upsell")({
   component: UpsellPage,
