@@ -75,7 +75,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
 
         <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
-          {nav.map((item) => {
+          {fullNav.map((item) => {
             const active =
               item.to === "/"
                 ? location.pathname === "/"
