@@ -32,6 +32,7 @@ function Clients() {
 
 function ClientsList() {
   const qc = useQueryClient();
+  const { canManage } = usePermissions();
   const navigate = useNavigate();
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
