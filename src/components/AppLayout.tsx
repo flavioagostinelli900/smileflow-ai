@@ -45,8 +45,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { isSuperAdmin, isAuthorizedAdmin } = usePermissions();
-  const fullNav = (isSuperAdmin || isAuthorizedAdmin)
+  const { isSuperAdmin, isAuthorizedAdmin, loading: permissionsLoading } = usePermissions();
+  const showAdminNav = !permissionsLoading && (isSuperAdmin || isAuthorizedAdmin);
+  const fullNav = showAdminNav
     ? [...nav, { to: "/admin", label: "Admin", icon: ShieldCheck }]
     : nav;
   const current = fullNav.find((n) =>
