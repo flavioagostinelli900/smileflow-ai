@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import { toast } from "sonner";
 import { ImportClientsDialog } from "@/components/ImportClientsDialog";
+import { usePermissions } from "@/lib/usePermissions";
 
 export const Route = createFileRoute("/clients")({
   component: Clients,
