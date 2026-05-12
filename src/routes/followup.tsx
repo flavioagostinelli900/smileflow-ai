@@ -231,7 +231,7 @@ function StatMini({ icon, label, value, accent }: { icon: React.ReactNode; label
   );
 }
 
-function WorkflowCard({ seq, onToggle, onEdit }: { seq: FollowupSequence; onToggle: () => void; onEdit: () => void }) {
+function WorkflowCard({ seq, canManage, onToggle, onEdit }: { seq: FollowupSequence; canManage: boolean; onToggle: () => void; onEdit: () => void }) {
   return (
     <Card className="p-5 hover:shadow-elegant transition-all group">
       <div className="flex items-start justify-between gap-3 mb-4">
@@ -243,7 +243,7 @@ function WorkflowCard({ seq, onToggle, onEdit }: { seq: FollowupSequence; onTogg
           </div>
           <p className="text-xs text-muted-foreground">{seq.target}</p>
         </div>
-        <Switch checked={seq.active} onCheckedChange={onToggle} />
+        <Switch checked={seq.active} onCheckedChange={onToggle} disabled={!canManage} />
       </div>
 
       <div className="flex items-center gap-1 overflow-x-auto pb-2 -mx-1 px-1">
@@ -268,7 +268,7 @@ function WorkflowCard({ seq, onToggle, onEdit }: { seq: FollowupSequence; onTogg
         <div><div className="text-[10px] text-muted-foreground uppercase">Conversione</div><div className="text-sm font-semibold text-success">{Math.round(Number(seq.conversion_rate))}%</div></div>
       </div>
 
-      <Button variant="outline" size="sm" className="w-full mt-3" onClick={onEdit}><Play className="size-3.5 mr-1.5" />Modifica workflow</Button>
+      {canManage && <Button variant="outline" size="sm" className="w-full mt-3" onClick={onEdit}><Play className="size-3.5 mr-1.5" />Modifica workflow</Button>}
     </Card>
   );
 }
