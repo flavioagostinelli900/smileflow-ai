@@ -41,6 +41,7 @@ function AdminPanel() {
 
   const { data: studios } = useQuery({
     queryKey: ["admin-studios"],
+    enabled: !loading && isSuperAdmin,
     queryFn: async () => {
       const { data, error } = await supabase.from("studios").select("*").order("created_at", { ascending: false });
       if (error) throw error;
@@ -50,6 +51,7 @@ function AdminPanel() {
 
   const { data: audit } = useQuery({
     queryKey: ["admin-audit"],
+    enabled: !loading && isSuperAdmin,
     queryFn: async () => {
       const { data, error } = await supabase.from("audit_log").select("*").order("created_at", { ascending: false }).limit(50);
       if (error) throw error;
