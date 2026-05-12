@@ -14,6 +14,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { ImportClientsDialog } from "@/components/ImportClientsDialog";
 import { usePermissions } from "@/lib/usePermissions";
+import { Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/clients")({
   component: Clients,
@@ -32,7 +33,7 @@ function Clients() {
 
 function ClientsList() {
   const qc = useQueryClient();
-  const { canManage } = usePermissions();
+  const { canManage, loading: permissionsLoading } = usePermissions();
   const navigate = useNavigate();
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -65,12 +66,17 @@ function ClientsList() {
   const openClient = (c: Client) => navigate({ to: "/clients/$clientId", params: { clientId: c.id } });
 
   const createClient = async () => {
+    if (!canManage) return;
     const first = prompt("Nome:"); if (!first) return;
     const last = prompt("Cognome:") || ""; const phone = prompt("Telefono:") || "";
     if (!phone) return;
     const { error } = await supabase.from("clients").insert({ first_name: first, last_name: last, phone, status: "active" });
     if (error) toast.error(error.message); else { toast.success("Cliente creato"); qc.invalidateQueries({ queryKey: ["clients"] }); }
   };
+
+  if (permissionsLoading) {
+    return <AppLayout><div className="flex items-center gap-2 text-sm text-muted-foreground"><Sparkles className="size-4 animate-pulse text-primary" />Caricamento permessi…</div></AppLayout>;
+  }
 
   return (
     <AppLayout>
