@@ -31,13 +31,13 @@ type AuditRow = {
 };
 
 function AdminPanel() {
-  const { isSuperAdmin, isAuthorizedAdmin, loading } = usePermissions();
+  const { isSuperAdmin, loading } = usePermissions();
   const navigate = useNavigate();
   const qc = useQueryClient();
 
   useEffect(() => {
-    if (!loading && !isSuperAdmin && !isAuthorizedAdmin) navigate({ to: "/" });
-  }, [loading, isSuperAdmin, isAuthorizedAdmin, navigate]);
+    if (!loading && !isSuperAdmin) navigate({ to: "/" });
+  }, [loading, isSuperAdmin, navigate]);
 
   const { data: studios } = useQuery({
     queryKey: ["admin-studios"],
@@ -102,6 +102,12 @@ function AdminPanel() {
     toast.success("Admin autorizzato");
     setAuthOpen(false); setAuthEmail(""); setAuthStudio("");
   };
+
+  if (loading) {
+    return <AppLayout><div className="text-sm text-muted-foreground">Caricamento permessi…</div></AppLayout>;
+  }
+
+  if (!isSuperAdmin) return null;
 
   return (
     <AppLayout>
