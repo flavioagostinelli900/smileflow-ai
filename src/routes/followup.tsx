@@ -99,7 +99,7 @@ function FollowUp() {
 
           <div className="grid lg:grid-cols-2 gap-4">
             {sequences.map((s) => (
-              <WorkflowCard key={s.id} seq={s} canManage={canManage} onToggle={() => toggle(s)} onEdit={() => canManage && setEditing(s)} />
+              <WorkflowCard key={s.id} seq={s} canManage={canManage} onToggle={() => toggle(s)} onEdit={() => setEditing(s)} />
             ))}
           </div>
         </TabsContent>
