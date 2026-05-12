@@ -69,11 +69,13 @@ function UpsellPage() {
   const revenue = accepted.reduce((sum, o) => sum + (Number(o.revenue_generated) || 0), 0);
 
   const toggleRule = async (r: UpsellRule, active: boolean) => {
+    if (!canManage) return;
     await supabase.from("upsell_rules").update({ active }).eq("id", r.id);
     qc.invalidateQueries({ queryKey: ["upsell-rules"] });
   };
 
   const updateRule = async (r: UpsellRule, patch: Partial<UpsellRule>) => {
+    if (!canManage) return;
     await supabase.from("upsell_rules").update(patch).eq("id", r.id);
     qc.invalidateQueries({ queryKey: ["upsell-rules"] });
   };
@@ -114,7 +116,7 @@ function UpsellPage() {
                 </div>
                 <div className="text-xs text-muted-foreground hidden md:block">scade {new Date(o.expires_at).toLocaleDateString("it")}</div>
                 {statusBadge(o.status)}
-                {o.status === "active" && (
+                {canManage && o.status === "active" && (
                   <div className="flex gap-1">
                     <Button size="sm" variant="outline" onClick={() => markUsed(o)}>Usa</Button>
                     <Button size="sm" variant="ghost" onClick={() => refuseOffer(o)}>×</Button>
