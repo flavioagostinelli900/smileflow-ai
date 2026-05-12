@@ -80,7 +80,7 @@ function FollowUp() {
             <TabsTrigger value="blocks"><Database className="size-3.5 mr-1.5" />Blocchi DB</TabsTrigger>
             <TabsTrigger value="analytics">Conversioni</TabsTrigger>
           </TabsList>
-          <Button size="sm" className="bg-gradient-primary" onClick={createNew}><Plus className="size-4 mr-1.5" />Nuovo workflow</Button>
+          {canManage && <Button size="sm" className="bg-gradient-primary" onClick={createNew}><Plus className="size-4 mr-1.5" />Nuovo workflow</Button>}
         </div>
 
         <TabsContent value="workflows" className="space-y-4">
