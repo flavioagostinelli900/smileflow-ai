@@ -14,6 +14,38 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_authorizations: {
+        Row: {
+          admin_user_id: string
+          created_at: string
+          granted_by: string | null
+          id: string
+          studio_id: string
+        }
+        Insert: {
+          admin_user_id: string
+          created_at?: string
+          granted_by?: string | null
+          id?: string
+          studio_id: string
+        }
+        Update: {
+          admin_user_id?: string
+          created_at?: string
+          granted_by?: string | null
+          id?: string
+          studio_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_authorizations_studio_id_fkey"
+            columns: ["studio_id"]
+            isOneToOne: false
+            referencedRelation: "studios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       appointments: {
         Row: {
           client_id: string | null
@@ -67,6 +99,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      audit_log: {
+        Row: {
+          action: string
+          after: Json | null
+          before: Json | null
+          created_at: string
+          entity: string
+          entity_id: string | null
+          id: string
+          studio_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          after?: Json | null
+          before?: Json | null
+          created_at?: string
+          entity: string
+          entity_id?: string | null
+          id?: string
+          studio_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          after?: Json | null
+          before?: Json | null
+          created_at?: string
+          entity?: string
+          entity_id?: string | null
+          id?: string
+          studio_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
       }
       clients: {
         Row: {
@@ -554,6 +622,36 @@ export type Database = {
         }
         Relationships: []
       }
+      studios: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          owner_user_id: string | null
+          plan: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          owner_user_id?: string | null
+          plan?: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          owner_user_id?: string | null
+          plan?: string
+          status?: string
+        }
+        Relationships: []
+      }
       upsell_offers: {
         Row: {
           appointment_id: string | null
@@ -638,15 +736,51 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          studio_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          studio_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          studio_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      can_manage_any: { Args: { _user_id: string }; Returns: boolean }
+      can_manage_studio: {
+        Args: { _studio_id: string; _user_id: string }
+        Returns: boolean
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_super_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "super_admin" | "authorized_admin" | "studio"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -773,6 +907,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["super_admin", "authorized_admin", "studio"],
+    },
   },
 } as const
