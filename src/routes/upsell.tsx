@@ -128,7 +128,7 @@ function UpsellPage() {
 
         <Card className="p-5 lg:col-span-2">
           <h3 className="font-semibold mb-4 flex items-center gap-2"><Sparkles className="size-4 text-primary" />Configurazione regole</h3>
-          <div className="space-y-3">
+          <fieldset disabled={!canManage} className="space-y-3">
             {rules.map((r) => (
               <div key={r.id} className="p-3 rounded-lg border space-y-2">
                 <div className="flex items-center gap-2">
