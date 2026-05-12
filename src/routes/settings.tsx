@@ -34,6 +34,8 @@ const templateLabels: Record<string, string> = {
 
 function Settings() {
   const qc = useQueryClient();
+  const { canManage } = usePermissions();
+  const ro = !canManage;
   const { data: settings } = useQuery({
     queryKey: ["studio-settings"],
     queryFn: async () => {
