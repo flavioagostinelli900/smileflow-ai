@@ -21,8 +21,10 @@ const rewards = [
 ];
 
 function Loyalty() {
+  const { canManage } = usePermissions();
   return (
     <AppLayout>
+      {!canManage && <ReadOnlyBanner className="mb-4" />}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <Card className="p-5">
           <Gift className="size-5 text-primary mb-3" />
