@@ -54,7 +54,7 @@ function Loyalty() {
             <h3 className="font-semibold">Programma fedeltà</h3>
             <p className="text-xs text-muted-foreground">Premi e scontistiche automatiche via WhatsApp</p>
           </div>
-          <Button className="bg-gradient-primary" size="sm">Nuovo premio</Button>
+          {canManage && <Button className="bg-gradient-primary" size="sm">Nuovo premio</Button>}
         </div>
         <div className="divide-y">
           {rewards.map((r) => (
