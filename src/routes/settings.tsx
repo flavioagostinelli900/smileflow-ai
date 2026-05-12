@@ -34,7 +34,7 @@ const templateLabels: Record<string, string> = {
 
 function Settings() {
   const qc = useQueryClient();
-  const { canManage } = usePermissions();
+  const { canManage, loading: permissionsLoading } = usePermissions();
   const ro = !canManage;
   const { data: settings } = useQuery({
     queryKey: ["studio-settings"],
@@ -49,8 +49,10 @@ function Settings() {
   useEffect(() => { if (settings) setDraft(settings); }, [settings]);
 
   if (!draft) return <AppLayout><div className="text-muted-foreground">Caricamento…</div></AppLayout>;
+  if (permissionsLoading) return <AppLayout><div className="text-muted-foreground">Caricamento permessi…</div></AppLayout>;
 
   const save = async (patch: Partial<StudioSettings>) => {
+    if (!canManage) return;
     const { error } = await supabase.from("studio_settings").update(patch).eq("id", draft.id);
     if (error) toast.error(error.message); else { toast.success("Configurazione salvata"); qc.invalidateQueries({ queryKey: ["studio-settings"] }); }
   };
