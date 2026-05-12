@@ -64,7 +64,7 @@ export function usePermissions() {
       : false;
 
   return {
-    loading: authLoading || loading,
+    loading: !permissionsReady,
     roles,
     isSuperAdmin,
     isAuthorizedAdmin,
