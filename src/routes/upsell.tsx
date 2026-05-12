@@ -39,6 +39,7 @@ const statusBadge = (s: UpsellOffer["status"]) => {
 
 function UpsellPage() {
   const qc = useQueryClient();
+  const { canManage } = usePermissions();
 
   useEffect(() => { expireOldOffers().then(() => qc.invalidateQueries({ queryKey: ["upsell-offers"] })); }, [qc]);
 
