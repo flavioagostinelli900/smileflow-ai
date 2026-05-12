@@ -4,10 +4,11 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Plus, Calendar } from "lucide-react";
+import { Plus, Calendar, Sparkles } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { api, type Operator } from "@/lib/api";
 import { usePermissions } from "@/lib/usePermissions";
+import { ReadOnlyBanner } from "@/components/ReadOnlyBanner";
 
 export const Route = createFileRoute("/operators")({
   component: Operators,
@@ -15,7 +16,7 @@ export const Route = createFileRoute("/operators")({
 });
 
 function Operators() {
-  const { canManage } = usePermissions();
+  const { canManage, loading: permissionsLoading } = usePermissions();
   const { data: ops = [] } = useQuery({
     queryKey: ["operators"],
     queryFn: async () => {
@@ -25,8 +26,13 @@ function Operators() {
     },
   });
 
+  if (permissionsLoading) {
+    return <AppLayout><div className="flex items-center gap-2 text-sm text-muted-foreground"><Sparkles className="size-4 animate-pulse text-primary" />Caricamento permessi…</div></AppLayout>;
+  }
+
   return (
     <AppLayout>
+      {!canManage && <ReadOnlyBanner className="mb-4" />}
       <div className="flex justify-between items-center mb-6">
         <p className="text-sm text-muted-foreground">{ops.length} collaboratori</p>
         {canManage && <Button className="bg-gradient-primary" size="sm"><Plus className="size-4 mr-1.5" />Nuovo operatore</Button>}
