@@ -32,27 +32,32 @@ export function usePermissions() {
   }, []);
 
   useEffect(() => {
-    if (!user) { setRoles([]); setAuthorizedStudios([]); setLoading(false); return; }
+    if (authLoading) { setLoading(true); return; }
+    setRoles([]);
+    setAuthorizedStudios([]);
+    if (!user) { setLoading(false); return; }
     let cancel = false;
+    setLoading(true);
     (async () => {
-      const [{ data: rolesData }, { data: authData }] = await Promise.all([
+      const [{ data: rolesData, error: rolesError }, { data: authData, error: authError }] = await Promise.all([
         supabase.from("user_roles").select("role").eq("user_id", user.id),
         supabase.from("admin_authorizations").select("studio_id").eq("admin_user_id", user.id),
       ]);
       if (cancel) return;
-      setRoles((rolesData ?? []).map((r: { role: AppRole }) => r.role));
-      setAuthorizedStudios((authData ?? []).map((a: { studio_id: string }) => a.studio_id));
+      setRoles(rolesError ? [] : (rolesData ?? []).map((r: { role: AppRole }) => r.role));
+      setAuthorizedStudios(authError ? [] : (authData ?? []).map((a: { studio_id: string }) => a.studio_id));
       setLoading(false);
     })();
     return () => { cancel = true; };
-  }, [user]);
+  }, [authLoading, user?.id]);
 
-  const isSuperAdmin = roles.includes("super_admin");
-  const isAuthorizedAdmin = roles.includes("authorized_admin") || authorizedStudios.length > 0;
-  const isStudio = !isSuperAdmin && !isAuthorizedAdmin;
+  const permissionsReady = !authLoading && !loading;
+  const isSuperAdmin = permissionsReady && roles.includes("super_admin");
+  const isAuthorizedAdmin = permissionsReady && (roles.includes("authorized_admin") || authorizedStudios.length > 0);
+  const isStudio = permissionsReady && !isSuperAdmin && !isAuthorizedAdmin;
 
   // Quando un super admin impersona uno studio, l'UI si comporta come uno studio
-  const effectiveCanManage = isSuperAdmin && !impersonated
+  const effectiveCanManage = permissionsReady && isSuperAdmin && !impersonated
     ? true
     : isAuthorizedAdmin && !impersonated
       ? true
