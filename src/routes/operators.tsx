@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Plus, Calendar } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { api, type Operator } from "@/lib/api";
+import { usePermissions } from "@/lib/usePermissions";
 
 export const Route = createFileRoute("/operators")({
   component: Operators,
