@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Gift, Tag, Clock, TrendingUp } from "lucide-react";
+import { Gift, Tag, Clock, TrendingUp, Sparkles } from "lucide-react";
 import { usePermissions } from "@/lib/usePermissions";
 import { ReadOnlyBanner } from "@/components/ReadOnlyBanner";
 
@@ -21,7 +21,10 @@ const rewards = [
 ];
 
 function Loyalty() {
-  const { canManage } = usePermissions();
+  const { canManage, loading: permissionsLoading } = usePermissions();
+  if (permissionsLoading) {
+    return <AppLayout><div className="flex items-center gap-2 text-sm text-muted-foreground"><Sparkles className="size-4 animate-pulse text-primary" />Caricamento permessi…</div></AppLayout>;
+  }
   return (
     <AppLayout>
       {!canManage && <ReadOnlyBanner className="mb-4" />}
@@ -75,7 +78,7 @@ function Loyalty() {
               <Badge variant={r.active ? "default" : "secondary"} className={r.active ? "bg-success/15 text-success hover:bg-success/15" : ""}>
                 {r.active ? "Attivo" : "Pausa"}
               </Badge>
-              <Switch defaultChecked={r.active} />
+              <Switch defaultChecked={r.active} disabled={!canManage} />
             </div>
           ))}
         </div>

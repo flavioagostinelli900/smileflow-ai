@@ -34,7 +34,7 @@ const templateLabels: Record<string, string> = {
 
 function Settings() {
   const qc = useQueryClient();
-  const { canManage } = usePermissions();
+  const { canManage, loading: permissionsLoading } = usePermissions();
   const ro = !canManage;
   const { data: settings } = useQuery({
     queryKey: ["studio-settings"],
@@ -49,8 +49,10 @@ function Settings() {
   useEffect(() => { if (settings) setDraft(settings); }, [settings]);
 
   if (!draft) return <AppLayout><div className="text-muted-foreground">Caricamento…</div></AppLayout>;
+  if (permissionsLoading) return <AppLayout><div className="text-muted-foreground">Caricamento permessi…</div></AppLayout>;
 
   const save = async (patch: Partial<StudioSettings>) => {
+    if (!canManage) return;
     const { error } = await supabase.from("studio_settings").update(patch).eq("id", draft.id);
     if (error) toast.error(error.message); else { toast.success("Configurazione salvata"); qc.invalidateQueries({ queryKey: ["studio-settings"] }); }
   };
@@ -69,7 +71,6 @@ function Settings() {
   return (
     <AppLayout>
       {ro && <ReadOnlyBanner className="mb-4" />}
-      <fieldset disabled={ro} className={ro ? "opacity-90" : ""}>
       <Tabs defaultValue="studio" className="space-y-6">
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="studio"><Building2 className="size-3.5 mr-1.5" />Dati studio</TabsTrigger>
@@ -78,6 +79,7 @@ function Settings() {
           <TabsTrigger value="whatsapp"><Phone className="size-3.5 mr-1.5" />WhatsApp</TabsTrigger>
           <TabsTrigger value="messages"><MessageSquare className="size-3.5 mr-1.5" />Messaggi</TabsTrigger>
         </TabsList>
+        <fieldset disabled={ro} className={ro ? "opacity-90" : ""}>
 
         <TabsContent value="studio">
           <Card className="p-6 space-y-4">
@@ -88,7 +90,7 @@ function Settings() {
               <div><Label>Numero fisso</Label><Input value={draft.phone ?? ""} onChange={(e) => setDraft({ ...draft, phone: e.target.value })} /></div>
               <div><Label>WhatsApp AI</Label><Input value={draft.whatsapp_ai ?? ""} onChange={(e) => setDraft({ ...draft, whatsapp_ai: e.target.value })} /></div>
             </div>
-            <Button onClick={() => save({ name: draft.name, address: draft.address, phone: draft.phone, whatsapp_ai: draft.whatsapp_ai })} className="bg-gradient-primary"><Save className="size-4 mr-1.5" />Salva</Button>
+            {canManage && <Button onClick={() => save({ name: draft.name, address: draft.address, phone: draft.phone, whatsapp_ai: draft.whatsapp_ai })} className="bg-gradient-primary"><Save className="size-4 mr-1.5" />Salva</Button>}
           </Card>
         </TabsContent>
 
@@ -108,7 +110,7 @@ function Settings() {
                 </div>
               ))}
             </div>
-            <Button onClick={() => save({ opening_hours: draft.opening_hours })} className="mt-4 bg-gradient-primary"><Save className="size-4 mr-1.5" />Salva orari</Button>
+            {canManage && <Button onClick={() => save({ opening_hours: draft.opening_hours })} className="mt-4 bg-gradient-primary"><Save className="size-4 mr-1.5" />Salva orari</Button>}
           </Card>
         </TabsContent>
 
@@ -116,7 +118,7 @@ function Settings() {
           <Card className="p-6">
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-semibold">Durate visite</h3>
-              <Button size="sm" variant="outline" onClick={addVisit}><Plus className="size-4 mr-1.5" />Tipo visita</Button>
+              {canManage && <Button size="sm" variant="outline" onClick={addVisit}><Plus className="size-4 mr-1.5" />Tipo visita</Button>}
             </div>
             <div className="space-y-3">
               {draft.visit_types.map((v, i) => (
@@ -130,11 +132,11 @@ function Settings() {
                     <Switch checked={v.ai_booking} onCheckedChange={(b) => updateVisit(i, { ai_booking: b })} />
                     <span className="text-xs text-muted-foreground">Prenotazione AI</span>
                   </div>
-                  <Button size="icon" variant="ghost" onClick={() => removeVisit(i)} className="text-destructive"><Trash2 className="size-4" /></Button>
+                  {canManage && <Button size="icon" variant="ghost" onClick={() => removeVisit(i)} className="text-destructive"><Trash2 className="size-4" /></Button>}
                 </div>
               ))}
             </div>
-            <Button onClick={() => save({ visit_types: draft.visit_types })} className="mt-4 bg-gradient-primary"><Save className="size-4 mr-1.5" />Salva</Button>
+            {canManage && <Button onClick={() => save({ visit_types: draft.visit_types })} className="mt-4 bg-gradient-primary"><Save className="size-4 mr-1.5" />Salva</Button>}
           </Card>
         </TabsContent>
 
@@ -159,7 +161,7 @@ function Settings() {
                 </div>
               </label>
             </RadioGroup>
-            <Button onClick={() => save({ whatsapp_mode: draft.whatsapp_mode, whatsapp_ai: draft.whatsapp_ai, whatsapp_studio: draft.whatsapp_studio })} className="mt-4 bg-gradient-primary"><Save className="size-4 mr-1.5" />Salva</Button>
+            {canManage && <Button onClick={() => save({ whatsapp_mode: draft.whatsapp_mode, whatsapp_ai: draft.whatsapp_ai, whatsapp_studio: draft.whatsapp_studio })} className="mt-4 bg-gradient-primary"><Save className="size-4 mr-1.5" />Salva</Button>}
           </Card>
         </TabsContent>
 
@@ -175,10 +177,10 @@ function Settings() {
                 rows={2} />
             </Card>
           ))}
-          <Button onClick={() => save({ message_templates: draft.message_templates })} className="bg-gradient-primary"><Save className="size-4 mr-1.5" />Salva messaggi</Button>
+          {canManage && <Button onClick={() => save({ message_templates: draft.message_templates })} className="bg-gradient-primary"><Save className="size-4 mr-1.5" />Salva messaggi</Button>}
         </TabsContent>
+        </fieldset>
       </Tabs>
-      </fieldset>
     </AppLayout>
   );
 }

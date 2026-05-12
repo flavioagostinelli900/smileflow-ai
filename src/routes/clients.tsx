@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Filter, Download, Search, Upload } from "lucide-react";
+import { Plus, Filter, Download, Search, Upload, Sparkles } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, type Client } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,6 +14,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { ImportClientsDialog } from "@/components/ImportClientsDialog";
 import { usePermissions } from "@/lib/usePermissions";
+import { ReadOnlyBanner } from "@/components/ReadOnlyBanner";
 
 export const Route = createFileRoute("/clients")({
   component: Clients,
@@ -32,7 +33,7 @@ function Clients() {
 
 function ClientsList() {
   const qc = useQueryClient();
-  const { canManage } = usePermissions();
+  const { canManage, loading: permissionsLoading } = usePermissions();
   const navigate = useNavigate();
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -65,6 +66,7 @@ function ClientsList() {
   const openClient = (c: Client) => navigate({ to: "/clients/$clientId", params: { clientId: c.id } });
 
   const createClient = async () => {
+    if (!canManage) return;
     const first = prompt("Nome:"); if (!first) return;
     const last = prompt("Cognome:") || ""; const phone = prompt("Telefono:") || "";
     if (!phone) return;
@@ -72,8 +74,13 @@ function ClientsList() {
     if (error) toast.error(error.message); else { toast.success("Cliente creato"); qc.invalidateQueries({ queryKey: ["clients"] }); }
   };
 
+  if (permissionsLoading) {
+    return <AppLayout><div className="flex items-center gap-2 text-sm text-muted-foreground"><Sparkles className="size-4 animate-pulse text-primary" />Caricamento permessi…</div></AppLayout>;
+  }
+
   return (
     <AppLayout>
+      {!canManage && <ReadOnlyBanner className="mb-4" />}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         <Card className="p-4"><div className="text-xs text-muted-foreground mb-1">Totale pazienti</div><div className="text-2xl font-semibold">{stats.total}</div></Card>
         <Card className="p-4"><div className="text-xs text-muted-foreground mb-1">Attivi</div><div className="text-2xl font-semibold text-success">{stats.active}</div></Card>

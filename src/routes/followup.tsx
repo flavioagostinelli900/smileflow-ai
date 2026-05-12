@@ -43,7 +43,7 @@ const triggerOptions = [
 
 function FollowUp() {
   const qc = useQueryClient();
-  const { canManage } = usePermissions();
+  const { canManage, loading: permissionsLoading } = usePermissions();
   const [editing, setEditing] = useState<FollowupSequence | null>(null);
 
   const { data: sequences = [] } = useQuery({
@@ -56,11 +56,13 @@ function FollowUp() {
   });
 
   const toggle = async (s: FollowupSequence) => {
+    if (!canManage) return;
     await supabase.from("followup_sequences").update({ active: !s.active }).eq("id", s.id);
     qc.invalidateQueries({ queryKey: ["sequences"] });
   };
 
   const createNew = async () => {
+    if (!canManage) return;
     const { data, error } = await supabase.from("followup_sequences").insert({
       name: "Nuovo workflow", target: "Da definire", trigger_type: "inactive_clients", steps: 1, active: false,
       steps_config: [{ id: crypto.randomUUID(), type: "trigger", label: "Trigger evento" }],
@@ -70,6 +72,10 @@ function FollowUp() {
 
   const totalSent = sequences.reduce((a, s) => a + (s.messages_sent || 0), 0);
   const avgConv = sequences.length ? Math.round(sequences.reduce((a, s) => a + Number(s.conversion_rate || 0), 0) / sequences.length) : 0;
+
+  if (permissionsLoading) {
+    return <AppLayout><div className="flex items-center gap-2 text-sm text-muted-foreground"><Sparkles className="size-4 animate-pulse text-primary" />Caricamento permessi…</div></AppLayout>;
+  }
 
   return (
     <AppLayout>
@@ -93,12 +99,12 @@ function FollowUp() {
 
           <div className="grid lg:grid-cols-2 gap-4">
             {sequences.map((s) => (
-              <WorkflowCard key={s.id} seq={s} onToggle={() => toggle(s)} onEdit={() => setEditing(s)} />
+              <WorkflowCard key={s.id} seq={s} canManage={canManage} onToggle={() => toggle(s)} onEdit={() => setEditing(s)} />
             ))}
           </div>
         </TabsContent>
 
-        <TabsContent value="blocks"><BlocksTab /></TabsContent>
+        <TabsContent value="blocks"><BlocksTab canManage={canManage} /></TabsContent>
 
         <TabsContent value="analytics">
           <Card className="p-6">
@@ -122,12 +128,12 @@ function FollowUp() {
         </TabsContent>
       </Tabs>
 
-      <WorkflowBuilder open={!!editing} onOpenChange={(v) => !v && setEditing(null)} sequence={editing} />
+      <WorkflowBuilder open={!!editing && canManage} onOpenChange={(v) => !v && setEditing(null)} sequence={editing} />
     </AppLayout>
   );
 }
 
-function BlocksTab() {
+function BlocksTab({ canManage }: { canManage: boolean }) {
   const qc = useQueryClient();
   const { data: blocks = [] } = useQuery({
     queryKey: ["patient-blocks"],
@@ -142,6 +148,7 @@ function BlocksTab() {
   const totalPatients = blocks.reduce((a, b) => a + b.total, 0);
 
   const activateNext = async () => {
+    if (!canManage) return;
     const next = blocks.find((b) => b.status === "pending");
     if (!next) { toast.info("Nessun blocco in attesa"); return; }
     await supabase.from("patient_blocks").update({ status: "in_progress", scheduled_for: new Date().toISOString().slice(0, 10) }).eq("id", next.id);
@@ -168,7 +175,7 @@ function BlocksTab() {
             <div className="text-xs text-muted-foreground mb-1">Prossimo blocco</div>
             <div className="text-sm font-semibold">#{blocks.find((b) => b.status === "pending")?.block_number ?? "—"}</div>
           </div>
-          <Button size="sm" className="bg-gradient-primary" onClick={activateNext}><PlayCircle className="size-4 mr-1.5" />Attiva ora</Button>
+          {canManage && <Button size="sm" className="bg-gradient-primary" onClick={activateNext}><PlayCircle className="size-4 mr-1.5" />Attiva ora</Button>}
         </Card>
       </div>
 
@@ -224,7 +231,7 @@ function StatMini({ icon, label, value, accent }: { icon: React.ReactNode; label
   );
 }
 
-function WorkflowCard({ seq, onToggle, onEdit }: { seq: FollowupSequence; onToggle: () => void; onEdit: () => void }) {
+function WorkflowCard({ seq, canManage, onToggle, onEdit }: { seq: FollowupSequence; canManage: boolean; onToggle: () => void; onEdit: () => void }) {
   return (
     <Card className="p-5 hover:shadow-elegant transition-all group">
       <div className="flex items-start justify-between gap-3 mb-4">
@@ -236,7 +243,7 @@ function WorkflowCard({ seq, onToggle, onEdit }: { seq: FollowupSequence; onTogg
           </div>
           <p className="text-xs text-muted-foreground">{seq.target}</p>
         </div>
-        <Switch checked={seq.active} onCheckedChange={onToggle} />
+        <Switch checked={seq.active} onCheckedChange={onToggle} disabled={!canManage} />
       </div>
 
       <div className="flex items-center gap-1 overflow-x-auto pb-2 -mx-1 px-1">
@@ -261,13 +268,14 @@ function WorkflowCard({ seq, onToggle, onEdit }: { seq: FollowupSequence; onTogg
         <div><div className="text-[10px] text-muted-foreground uppercase">Conversione</div><div className="text-sm font-semibold text-success">{Math.round(Number(seq.conversion_rate))}%</div></div>
       </div>
 
-      <Button variant="outline" size="sm" className="w-full mt-3" onClick={onEdit}><Play className="size-3.5 mr-1.5" />Modifica workflow</Button>
+      {canManage && <Button variant="outline" size="sm" className="w-full mt-3" onClick={onEdit}><Play className="size-3.5 mr-1.5" />Modifica workflow</Button>}
     </Card>
   );
 }
 
 function WorkflowBuilder({ open, onOpenChange, sequence }: { open: boolean; onOpenChange: (v: boolean) => void; sequence: FollowupSequence | null }) {
   const qc = useQueryClient();
+  const { canManage } = usePermissions();
   const [name, setName] = useState("");
   const [target, setTarget] = useState("");
   const [trigger, setTrigger] = useState("inactive_clients");
@@ -290,6 +298,7 @@ function WorkflowBuilder({ open, onOpenChange, sequence }: { open: boolean; onOp
   const updateStep = (id: string, patch: Partial<WorkflowStep>) => setSteps(steps.map((s) => s.id === id ? { ...s, ...patch } : s));
 
   const save = async () => {
+    if (!canManage) return;
     const { error } = await supabase.from("followup_sequences").update({
       name, target, trigger_type: trigger, steps: steps.length, steps_config: steps,
     }).eq("id", sequence.id);
@@ -298,6 +307,7 @@ function WorkflowBuilder({ open, onOpenChange, sequence }: { open: boolean; onOp
   };
 
   const remove = async () => {
+    if (!canManage) return;
     if (!confirm("Eliminare questo workflow?")) return;
     await supabase.from("followup_sequences").delete().eq("id", sequence.id);
     qc.invalidateQueries({ queryKey: ["sequences"] }); onOpenChange(false);
