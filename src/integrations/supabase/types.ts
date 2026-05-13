@@ -624,31 +624,46 @@ export type Database = {
       }
       studios: {
         Row: {
+          billing_cycle: string
           created_at: string
           email: string | null
           id: string
           name: string
+          owner_name: string | null
           owner_user_id: string | null
+          phone: string | null
           plan: string
           status: string
+          subscription_expires_at: string | null
+          subscription_started_at: string | null
         }
         Insert: {
+          billing_cycle?: string
           created_at?: string
           email?: string | null
           id?: string
           name: string
+          owner_name?: string | null
           owner_user_id?: string | null
+          phone?: string | null
           plan?: string
           status?: string
+          subscription_expires_at?: string | null
+          subscription_started_at?: string | null
         }
         Update: {
+          billing_cycle?: string
           created_at?: string
           email?: string | null
           id?: string
           name?: string
+          owner_name?: string | null
           owner_user_id?: string | null
+          phone?: string | null
           plan?: string
           status?: string
+          subscription_expires_at?: string | null
+          subscription_started_at?: string | null
         }
         Relationships: []
       }
@@ -770,6 +785,10 @@ export type Database = {
         Args: { _studio_id: string; _user_id: string }
         Returns: boolean
       }
+      compute_subscription_expiry: {
+        Args: { _cycle: string; _start: string }
+        Returns: string
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -780,7 +799,7 @@ export type Database = {
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "super_admin" | "authorized_admin" | "studio"
+      app_role: "super_admin" | "authorized_admin" | "studio" | "support"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -908,7 +927,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["super_admin", "authorized_admin", "studio"],
+      app_role: ["super_admin", "authorized_admin", "studio", "support"],
     },
   },
 } as const
