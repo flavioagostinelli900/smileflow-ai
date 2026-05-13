@@ -1,13 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
-import { HelpCircle, X, Send } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { HelpCircle, X, Send, ChevronDown, ChevronUp, Search, Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/useAuth";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -23,7 +20,6 @@ type Ticket = {
   created_at: string;
   created_by: string;
 };
-
 type TicketMessage = {
   id: string;
   ticket_id: string;
@@ -32,6 +28,7 @@ type TicketMessage = {
   content: string;
   created_at: string;
 };
+type SofiaMsg = { role: "user" | "assistant"; content: string; ts: number };
 
 const CATEGORIES: Record<string, string> = {
   technical: "Problema tecnico",
@@ -40,6 +37,54 @@ const CATEGORIES: Record<string, string> = {
   other: "Altro",
 };
 
+const FAQ: { section: string; items: { q: string; a: string }[] }[] = [
+  {
+    section: "Generale",
+    items: [
+      { q: "Cos'è DentAI e come funziona?", a: "DentAI è una piattaforma AI che gestisce per te WhatsApp, prenotazioni, follow-up e recupero pazienti dello studio dentistico, riducendo il carico di segreteria." },
+      { q: "Come posso iniziare a usare la piattaforma?", a: "Dopo il login, vai in Configurazione: collega WhatsApp, imposta orari di apertura e tipi di visita, poi importa i tuoi pazienti. In pochi minuti l'AI è operativa." },
+      { q: "DentAI si integra con il mio gestionale?", a: "Supportiamo integrazioni con i principali gestionali italiani via API. Contatta il supporto per attivare la sincronizzazione." },
+      { q: "I dati dei miei pazienti sono al sicuro?", a: "Sì. I dati sono cifrati in transito e a riposo, ospitati in datacenter europei conformi al GDPR. Solo gli utenti autorizzati del tuo studio possono accedervi." },
+    ],
+  },
+  {
+    section: "WhatsApp e messaggi",
+    items: [
+      { q: "Come collego WhatsApp a DentAI?", a: "In Configurazione › WhatsApp puoi scegliere tra numero dedicato DentAI o usare il numero esistente dello studio tramite WhatsApp Business API." },
+      { q: "Quanti messaggi posso inviare al mese?", a: "Dipende dal piano: Base 1.000, Pro 5.000, Business illimitati. Puoi acquistare pacchetti extra in qualsiasi momento." },
+      { q: "Cosa succede se finisco i messaggi disponibili?", a: "Riceverai una notifica al 80% e al 100%. Puoi acquistare un pacchetto extra dalla sezione Abbonamento o aspettare il rinnovo mensile." },
+      { q: "Posso usare il numero WhatsApp già esistente dello studio?", a: "Sì, tramite WhatsApp Business API. Ti guidiamo passo-passo nella verifica del numero." },
+    ],
+  },
+  {
+    section: "Prenotazioni e calendario",
+    items: [
+      { q: "Come funziona la prenotazione automatica AI?", a: "Sofia AI propone slot disponibili al paziente in chat. Quando il paziente conferma, l'appuntamento viene creato automaticamente nel calendario." },
+      { q: "Posso gestire più operatori sul calendario?", a: "Sì. In Operatori puoi aggiungere staff, definire orari e tipi di visita supportati per ognuno." },
+      { q: "Come gestisce DentAI le disdette?", a: "L'AI propone automaticamente nuovi slot al paziente che disdice e libera lo slot per altri appuntamenti." },
+      { q: "Cosa succede in caso di no-show?", a: "L'AI invia un follow-up al paziente, e dopo conferma genera una nuova proposta di appuntamento o lo segnala alla segreteria." },
+    ],
+  },
+  {
+    section: "Follow-up e automazioni",
+    items: [
+      { q: "Come funzionano i workflow di follow-up?", a: "Dalla sezione Follow-up AI scegli un trigger (es. inattività >6 mesi) e una sequenza di messaggi. L'AI invia e gestisce le risposte." },
+      { q: "Posso personalizzare i messaggi automatici?", a: "Sì, ogni step della sequenza ha un template editabile, con variabili dinamiche come nome, ultima visita, reparto." },
+      { q: "Come viene identificato un paziente inattivo?", a: "In base alla data dell'ultima visita e al reparto. La soglia è configurabile per ogni workflow." },
+      { q: "Posso mettere in pausa un workflow?", a: "Sì, ogni workflow ha un toggle Attivo/Pausa nella lista. La pausa è immediata." },
+    ],
+  },
+  {
+    section: "Abbonamento e pagamenti",
+    items: [
+      { q: "Come funziona il pagamento?", a: "Il pagamento è ricorrente, mensile o annuale, tramite carta. La fatturazione è automatica e le ricevute disponibili in Account › Abbonamento." },
+      { q: "Posso cambiare piano in qualsiasi momento?", a: "Sì. Il cambio è immediato e la differenza viene calcolata pro-rata sui giorni rimanenti del periodo in corso." },
+      { q: "Come cancello l'abbonamento?", a: "Dalla sezione Abbonamento puoi disattivare il rinnovo. L'accesso resta attivo fino alla scadenza del periodo già pagato." },
+      { q: "Dove trovo le mie fatture?", a: "In Account › Abbonamento › Scarica fatture trovi lo storico completo in PDF." },
+    ],
+  },
+];
+
 function statusBadge(s: string) {
   if (s === "open") return <Badge className="bg-amber-500/15 text-amber-700 border-amber-500/30 hover:bg-amber-500/15">Aperto</Badge>;
   if (s === "in_progress") return <Badge className="bg-blue-500/15 text-blue-700 border-blue-500/30 hover:bg-blue-500/15">In lavorazione</Badge>;
@@ -47,16 +92,47 @@ function statusBadge(s: string) {
   return <Badge variant="secondary">Chiuso</Badge>;
 }
 
+function isWorkingHours(d = new Date()) {
+  const day = d.getDay(); // 0=Sun, 6=Sat
+  const h = d.getHours();
+  return day >= 1 && day <= 5 && h >= 9 && h < 18;
+}
+
+function wantsHumanOperator(text: string) {
+  const t = text.toLowerCase();
+  return /(parlare|contattare|sentire).{0,20}(operatore|umano|persona|team|assistenza)/.test(t)
+    || /voglio.{0,15}operatore/.test(t)
+    || /operatore (umano|vero)/.test(t)
+    || /assistenza umana/.test(t);
+}
+
+const SOFIA_WELCOME =
+  "Ciao! Sono Sofia, l'assistente virtuale di DentAI 🙂\n\n" +
+  "Sono qui per aiutarti a risolvere qualsiasi dubbio sulla piattaforma in modo rapido e professionale. " +
+  "Gestisco la maggior parte delle richieste in autonomia.\n\n" +
+  "Se preferisci parlare con un operatore umano, scrivi semplicemente: 'Voglio parlare con un operatore' " +
+  "e ti metterò in contatto con il nostro team.";
+
 export function SupportWidget() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState("new");
+  const [tab, setTab] = useState("ai");
   const [activeTicket, setActiveTicket] = useState<Ticket | null>(null);
 
-  const [subject, setSubject] = useState("");
-  const [category, setCategory] = useState("technical");
-  const [description, setDescription] = useState("");
+  // Sofia chat state
+  const [sofiaMsgs, setSofiaMsgs] = useState<SofiaMsg[]>([
+    { role: "assistant", content: SOFIA_WELCOME, ts: Date.now() },
+  ]);
+  const [sofiaInput, setSofiaInput] = useState("");
+  const [sofiaLoading, setSofiaLoading] = useState(false);
+  const sofiaScroll = useRef<HTMLDivElement>(null);
+
+  // FAQ state
+  const [faqQuery, setFaqQuery] = useState("");
+  const [openFaq, setOpenFaq] = useState<string | null>(null);
+
+  // ticket reply
   const [reply, setReply] = useState("");
 
   const { data: tickets } = useQuery({
@@ -87,27 +163,98 @@ export function SupportWidget() {
     },
   });
 
-  const unreadCount = useMemo(() => 0, []); // placeholder for backend-driven unread count
+  useEffect(() => {
+    sofiaScroll.current?.scrollTo({ top: sofiaScroll.current.scrollHeight, behavior: "smooth" });
+  }, [sofiaMsgs, sofiaLoading]);
 
-  const submitTicket = async () => {
-    if (!user) return toast.error("Devi essere loggato");
-    if (!subject.trim() || !description.trim()) return toast.error("Compila tutti i campi");
+  const filteredFaq = useMemo(() => {
+    const q = faqQuery.trim().toLowerCase();
+    if (!q) return FAQ;
+    return FAQ.map((s) => ({
+      ...s,
+      items: s.items.filter((i) => i.q.toLowerCase().includes(q) || i.a.toLowerCase().includes(q)),
+    })).filter((s) => s.items.length > 0);
+  }, [faqQuery]);
+
+  const createTicketFromSofia = async (history: SofiaMsg[]) => {
+    if (!user) return null;
+    const transcript = history
+      .map((m) => `${m.role === "user" ? "Utente" : "Sofia"} (${new Date(m.ts).toLocaleString("it-IT")}):\n${m.content}`)
+      .join("\n\n");
     const { data: ticket, error } = await supabase
       .from("support_tickets")
-      .insert({ created_by: user.id, subject: subject.trim(), category, status: "open" })
+      .insert({
+        created_by: user.id,
+        subject: "Richiesta operatore umano",
+        category: "other",
+        status: "open",
+      })
       .select()
       .single();
-    if (error || !ticket) return toast.error(error?.message || "Errore");
+    if (error || !ticket) {
+      toast.error("Errore nella creazione del ticket");
+      return null;
+    }
     await supabase.from("support_ticket_messages").insert({
       ticket_id: ticket.id,
       sender_user_id: user.id,
       sender_role: "studio",
-      content: description.trim(),
+      content: `--- Cronologia chat con Sofia AI ---\n\n${transcript}`,
     });
-    toast.success("Ticket inviato. Riceverai una risposta entro 24 ore.");
-    setSubject(""); setDescription(""); setCategory("technical");
     qc.invalidateQueries({ queryKey: ["my-tickets"] });
-    setTab("list");
+    return ticket as Ticket;
+  };
+
+  const sendToSofia = async () => {
+    const text = sofiaInput.trim();
+    if (!text || sofiaLoading) return;
+    const userMsg: SofiaMsg = { role: "user", content: text, ts: Date.now() };
+    const nextHistory = [...sofiaMsgs, userMsg];
+    setSofiaMsgs(nextHistory);
+    setSofiaInput("");
+
+    if (wantsHumanOperator(text)) {
+      const working = isWorkingHours();
+      const handoffMsg: SofiaMsg = {
+        role: "assistant",
+        ts: Date.now(),
+        content: working
+          ? "Perfetto, ti metto subito in contatto con il nostro team 🙂\n\nSto creando il ticket con la cronologia della nostra conversazione. Un operatore ti risponderà a breve."
+          : "Al momento i nostri operatori non sono disponibili. Il nostro team è attivo dal Lunedì al Venerdì dalle 9:00 alle 18:00.\n\nHo creato un ticket con la cronologia della nostra conversazione. Verrà preso in gestione non appena il team sarà disponibile 🙂",
+      };
+      setSofiaMsgs([...nextHistory, handoffMsg]);
+      const ticket = await createTicketFromSofia([...nextHistory, handoffMsg]);
+      if (ticket) {
+        setSofiaMsgs((cur) => [...cur, {
+          role: "assistant",
+          ts: Date.now(),
+          content: `Ticket #${ticket.ticket_number} creato con successo. Riceverai una risposta via email entro poche ore.`,
+        }]);
+      }
+      return;
+    }
+
+    setSofiaLoading(true);
+    try {
+      const r = await fetch("/api/sofia", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: nextHistory.map(({ role, content }) => ({ role, content })),
+        }),
+      });
+      const json = await r.json();
+      const reply: SofiaMsg = { role: "assistant", content: json.reply ?? "Mi spiace, riprova.", ts: Date.now() };
+      setSofiaMsgs([...nextHistory, reply]);
+    } catch (e) {
+      setSofiaMsgs([...nextHistory, {
+        role: "assistant",
+        content: "Mi spiace, c'è stato un problema. Riprova tra poco o apri un ticket.",
+        ts: Date.now(),
+      }]);
+    } finally {
+      setSofiaLoading(false);
+    }
   };
 
   const sendReply = async () => {
@@ -137,7 +284,6 @@ export function SupportWidget() {
 
   return (
     <>
-      {/* Floating button */}
       {!open && (
         <TooltipProvider>
           <Tooltip>
@@ -148,11 +294,6 @@ export function SupportWidget() {
                 aria-label="Assistenza"
               >
                 <HelpCircle className="size-6" />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 size-5 rounded-full bg-destructive text-destructive-foreground text-[10px] font-semibold flex items-center justify-center">
-                    {unreadCount}
-                  </span>
-                )}
               </button>
             </TooltipTrigger>
             <TooltipContent side="left">Assistenza</TooltipContent>
@@ -160,18 +301,28 @@ export function SupportWidget() {
         </TooltipProvider>
       )}
 
-      {/* Panel */}
       {open && (
-        <div className="fixed bottom-5 right-5 z-50 w-[calc(100vw-2.5rem)] sm:w-[380px] max-h-[80vh] bg-card border rounded-xl shadow-elevated flex flex-col overflow-hidden">
-          <div className="p-4 bg-gradient-primary text-primary-foreground flex items-start gap-3">
-            <div className="size-10 rounded-full bg-white/20 flex items-center justify-center font-semibold">D</div>
+        <div
+          className={cn(
+            "fixed z-50 bg-card border shadow-elevated flex flex-col overflow-hidden",
+            "inset-x-0 bottom-0 top-0 sm:inset-auto sm:bottom-5 sm:right-5",
+            "sm:rounded-xl sm:w-[420px] sm:h-[580px] sm:max-h-[85vh]",
+          )}
+        >
+          {/* Header */}
+          <div className="p-3 sm:p-4 bg-gradient-primary text-primary-foreground flex items-center gap-3 shrink-0">
+            <div className="size-9 rounded-full bg-white/20 flex items-center justify-center font-semibold text-sm">D</div>
             <div className="flex-1 min-w-0">
-              <div className="font-semibold">Supporto DentAI</div>
-              <div className="text-[11px] opacity-90 leading-snug">
-                Disponibili Lun–Ven 9:00–18:00. Di solito rispondiamo entro poche ore.
+              <div className="font-semibold text-sm">Centro Assistenza</div>
+              <div className="text-[11px] opacity-90 leading-snug truncate">
+                Sofia AI · disponibile 24/7
               </div>
             </div>
-            <button onClick={() => { setOpen(false); setActiveTicket(null); }} className="text-primary-foreground/80 hover:text-primary-foreground" aria-label="Chiudi">
+            <button
+              onClick={() => { setOpen(false); setActiveTicket(null); }}
+              className="size-8 rounded-md hover:bg-white/15 flex items-center justify-center"
+              aria-label="Chiudi"
+            >
               <X className="size-5" />
             </button>
           </div>
@@ -223,40 +374,129 @@ export function SupportWidget() {
             </div>
           ) : (
             <Tabs value={tab} onValueChange={setTab} className="flex-1 flex flex-col overflow-hidden">
-              <TabsList className="grid grid-cols-2 mx-3 mt-3">
-                <TabsTrigger value="new">Nuovo ticket</TabsTrigger>
-                <TabsTrigger value="list">I miei ticket</TabsTrigger>
+              <TabsList className="grid grid-cols-3 mx-3 mt-3 shrink-0">
+                <TabsTrigger value="ai">Assistente AI</TabsTrigger>
+                <TabsTrigger value="faq">FAQ</TabsTrigger>
+                <TabsTrigger value="tickets">Ticket</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="new" className="flex-1 overflow-y-auto p-4 space-y-3 m-0">
-                <div className="space-y-1.5">
-                  <Label>Oggetto</Label>
-                  <Input value={subject} onChange={(e) => setSubject(e.target.value)} />
+              {/* TAB 1 — Sofia AI */}
+              <TabsContent value="ai" className="flex-1 flex flex-col overflow-hidden m-0 mt-3">
+                <div className="px-4 pb-3 border-b flex items-center gap-3">
+                  <div className="relative shrink-0">
+                    <div className="size-10 rounded-full bg-primary/15 text-primary flex items-center justify-center font-semibold">AI</div>
+                    <span className="absolute bottom-0 right-0 size-2.5 rounded-full bg-emerald-500 ring-2 ring-card" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="font-medium text-sm truncate">Sofia — Assistente DentAI</div>
+                    <div className="text-[11px] text-muted-foreground leading-snug">
+                      Sono qui per aiutarti, gestisco la maggior parte delle domande in tempo reale.
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-1.5">
-                  <Label>Categoria</Label>
-                  <Select value={category} onValueChange={setCategory}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(CATEGORIES).map(([k, v]) => (
-                        <SelectItem key={k} value={k}>{v}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+
+                <div ref={sofiaScroll} className="flex-1 overflow-y-auto p-3 space-y-3">
+                  {sofiaMsgs.map((m, i) => (
+                    <div key={i} className={cn("flex gap-2", m.role === "user" ? "justify-end" : "justify-start")}>
+                      {m.role === "assistant" && (
+                        <div className="size-7 shrink-0 rounded-full bg-primary/15 text-primary flex items-center justify-center text-[10px] font-semibold">
+                          <Bot className="size-3.5" />
+                        </div>
+                      )}
+                      <div className={cn(
+                        "max-w-[80%] rounded-lg px-3 py-2 text-sm whitespace-pre-wrap break-words",
+                        m.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted",
+                      )}>{m.content}</div>
+                    </div>
+                  ))}
+                  {sofiaLoading && (
+                    <div className="flex gap-2">
+                      <div className="size-7 shrink-0 rounded-full bg-primary/15 text-primary flex items-center justify-center">
+                        <Bot className="size-3.5" />
+                      </div>
+                      <div className="bg-muted rounded-lg px-3 py-2 text-sm">
+                        <span className="inline-flex gap-1">
+                          <span className="size-1.5 bg-muted-foreground/60 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                          <span className="size-1.5 bg-muted-foreground/60 rounded-full animate-bounce" style={{ animationDelay: "120ms" }} />
+                          <span className="size-1.5 bg-muted-foreground/60 rounded-full animate-bounce" style={{ animationDelay: "240ms" }} />
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div className="space-y-1.5">
-                  <Label>Descrizione</Label>
-                  <Textarea
-                    rows={5}
-                    placeholder="Descrivi il problema nel dettaglio…"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
+
+                <div className="p-3 border-t flex gap-2 shrink-0">
+                  <Input
+                    value={sofiaInput}
+                    onChange={(e) => setSofiaInput(e.target.value)}
+                    placeholder="Scrivi un messaggio…"
+                    disabled={sofiaLoading}
+                    onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendToSofia(); } }}
                   />
+                  <Button size="icon" onClick={sendToSofia} disabled={!sofiaInput.trim() || sofiaLoading}>
+                    <Send className="size-4" />
+                  </Button>
                 </div>
-                <Button className="w-full bg-gradient-primary" onClick={submitTicket}>Invia ticket</Button>
               </TabsContent>
 
-              <TabsContent value="list" className="flex-1 overflow-y-auto p-3 space-y-2 m-0">
+              {/* TAB 2 — FAQ */}
+              <TabsContent value="faq" className="flex-1 flex flex-col overflow-hidden m-0 mt-3">
+                <div className="px-4 pb-3 shrink-0">
+                  <div className="font-medium text-sm">Domande frequenti</div>
+                  <div className="text-[11px] text-muted-foreground">Trova subito risposta ai dubbi più comuni</div>
+                  <div className="relative mt-2">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+                    <Input
+                      value={faqQuery}
+                      onChange={(e) => setFaqQuery(e.target.value)}
+                      placeholder="Cerca tra le FAQ..."
+                      className="pl-8 h-9"
+                    />
+                  </div>
+                </div>
+                <div className="flex-1 overflow-y-auto px-3 pb-3 space-y-3">
+                  {filteredFaq.length === 0 && (
+                    <div className="text-center text-xs text-muted-foreground py-10">
+                      Nessun risultato. Prova a chiedere a Sofia o apri un ticket.
+                    </div>
+                  )}
+                  {filteredFaq.map((s) => (
+                    <div key={s.section}>
+                      <div className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold px-1 mb-1">{s.section}</div>
+                      <div className="border rounded-lg divide-y overflow-hidden bg-background">
+                        {s.items.map((item) => {
+                          const id = `${s.section}::${item.q}`;
+                          const isOpen = openFaq === id;
+                          return (
+                            <div key={id}>
+                              <button
+                                onClick={() => setOpenFaq(isOpen ? null : id)}
+                                className="w-full px-3 py-2.5 flex items-start justify-between gap-2 text-left hover:bg-muted/40 text-sm"
+                              >
+                                <span className="flex-1 min-w-0">{item.q}</span>
+                                {isOpen ? <ChevronUp className="size-4 shrink-0 text-muted-foreground mt-0.5" /> : <ChevronDown className="size-4 shrink-0 text-muted-foreground mt-0.5" />}
+                              </button>
+                              {isOpen && (
+                                <div className="px-3 pb-3 pt-1 text-xs text-muted-foreground leading-relaxed">
+                                  {item.a}
+                                  <div className="mt-3 pt-3 border-t flex items-center gap-2 text-foreground">
+                                    <span>Utile?</span>
+                                    <button onClick={() => toast.success("Grazie per il feedback!")} className="hover:opacity-70">👍</button>
+                                    <button onClick={() => setTab("ai")} className="hover:opacity-70">👎</button>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </TabsContent>
+
+              {/* TAB 3 — My tickets */}
+              <TabsContent value="tickets" className="flex-1 overflow-y-auto p-3 space-y-2 m-0 mt-3">
                 {tickets?.length ? tickets.map((t) => (
                   <button
                     key={t.id}
