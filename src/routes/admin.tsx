@@ -8,14 +8,17 @@ import { Label } from "@/components/ui/label";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { usePermissions, setImpersonatedStudioId } from "@/lib/usePermissions";
-import { useEffect, useState } from "react";
+import { usePermissions, setImpersonatedStudioId, type AppRole } from "@/lib/usePermissions";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Eye, Pause, Play, ShieldPlus, Plus } from "lucide-react";
+import { Eye, Pause, Play, Plus, Pencil, Trash2, Info, UserPlus } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
   component: AdminPanel,
@@ -23,25 +26,59 @@ export const Route = createFileRoute("/admin")({
 });
 
 type Studio = {
-  id: string; name: string; email: string | null; plan: string; status: string; created_at: string;
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  owner_name: string | null;
+  plan: string;
+  billing_cycle: string;
+  subscription_started_at: string | null;
+  subscription_expires_at: string | null;
+  status: string;
+  created_at: string;
 };
 type AuditRow = {
   id: string; user_id: string | null; studio_id: string | null;
   action: string; entity: string; entity_id: string | null; created_at: string;
 };
+type StaffRow = {
+  user_id: string;
+  full_name: string | null;
+  roles: AppRole[];
+  studio_ids: string[];
+};
+
+const PLAN_OPTIONS = ["free", "pro", "business"] as const;
+const CYCLE_OPTIONS = ["monthly", "annual"] as const;
+const STAFF_ROLE_OPTIONS: AppRole[] = ["super_admin", "authorized_admin", "support"];
+
+function renewalBadge(expires: string | null) {
+  if (!expires) return <Badge variant="outline">—</Badge>;
+  const days = Math.ceil((new Date(expires).getTime() - Date.now()) / 86400000);
+  const label = new Date(expires).toLocaleDateString("it-IT");
+  if (days <= 7) return <Badge className="bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/30 hover:bg-red-500/15">{label}</Badge>;
+  if (days <= 30) return <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30 hover:bg-amber-500/15">{label}</Badge>;
+  return <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/15">{label}</Badge>;
+}
+
+function roleLabel(r: AppRole) {
+  return r === "super_admin" ? "Super Admin" : r === "authorized_admin" ? "Admin Autorizzato" : r === "support" ? "Supporto" : "Studio";
+}
 
 function AdminPanel() {
-  const { isSuperAdmin, loading } = usePermissions();
+  const { isSuperAdmin, isAuthorizedAdmin, loading } = usePermissions();
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const canAccess = isSuperAdmin || isAuthorizedAdmin;
 
   useEffect(() => {
-    if (!loading && !isSuperAdmin) navigate({ to: "/" });
-  }, [loading, isSuperAdmin, navigate]);
+    if (!loading && !canAccess) navigate({ to: "/" });
+  }, [loading, canAccess, navigate]);
 
   const { data: studios } = useQuery({
     queryKey: ["admin-studios"],
-    enabled: !loading && isSuperAdmin,
+    enabled: !loading && canAccess,
     queryFn: async () => {
       const { data, error } = await supabase.from("studios").select("*").order("created_at", { ascending: false });
       if (error) throw error;
@@ -51,7 +88,7 @@ function AdminPanel() {
 
   const { data: audit } = useQuery({
     queryKey: ["admin-audit"],
-    enabled: !loading && isSuperAdmin,
+    enabled: !loading && canAccess,
     queryFn: async () => {
       const { data, error } = await supabase.from("audit_log").select("*").order("created_at", { ascending: false }).limit(50);
       if (error) throw error;
@@ -59,21 +96,82 @@ function AdminPanel() {
     },
   });
 
-  const [newStudio, setNewStudio] = useState({ name: "", email: "", plan: "free" });
-  const [authEmail, setAuthEmail] = useState("");
-  const [authStudio, setAuthStudio] = useState<string>("");
-  const [authOpen, setAuthOpen] = useState(false);
-  const [createOpen, setCreateOpen] = useState(false);
+  const { data: staff } = useQuery({
+    queryKey: ["admin-staff"],
+    enabled: !loading && canAccess,
+    queryFn: async () => {
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("user_id, role, studio_id")
+        .in("role", ["super_admin", "authorized_admin", "support"]);
+      const ids = Array.from(new Set((roles ?? []).map((r) => r.user_id)));
+      if (ids.length === 0) return [];
+      const { data: profiles } = await supabase.from("profiles").select("id, full_name").in("id", ids);
+      const { data: auths } = await supabase
+        .from("admin_authorizations")
+        .select("admin_user_id, studio_id")
+        .in("admin_user_id", ids);
+      const map = new Map<string, StaffRow>();
+      (roles ?? []).forEach((r) => {
+        const cur = map.get(r.user_id) ?? {
+          user_id: r.user_id,
+          full_name: profiles?.find((p) => p.id === r.user_id)?.full_name ?? null,
+          roles: [],
+          studio_ids: [],
+        };
+        if (!cur.roles.includes(r.role as AppRole)) cur.roles.push(r.role as AppRole);
+        if (r.studio_id && !cur.studio_ids.includes(r.studio_id)) cur.studio_ids.push(r.studio_id);
+        map.set(r.user_id, cur);
+      });
+      (auths ?? []).forEach((a) => {
+        const cur = map.get(a.admin_user_id);
+        if (cur && !cur.studio_ids.includes(a.studio_id)) cur.studio_ids.push(a.studio_id);
+      });
+      return Array.from(map.values());
+    },
+  });
 
-  const createStudio = async () => {
-    if (!newStudio.name) return toast.error("Inserisci il nome");
-    const { error } = await supabase.from("studios").insert({
-      name: newStudio.name, email: newStudio.email || null, plan: newStudio.plan, status: "active",
+  // ---- Studio dialogs ----
+  const emptyStudio = {
+    name: "", email: "", phone: "", owner_name: "",
+    plan: "free", billing_cycle: "monthly",
+    subscription_started_at: new Date().toISOString().slice(0, 10),
+    status: "active",
+  };
+  const [studioForm, setStudioForm] = useState(emptyStudio);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [studioOpen, setStudioOpen] = useState(false);
+
+  const openCreate = () => { setEditingId(null); setStudioForm(emptyStudio); setStudioOpen(true); };
+  const openEdit = (s: Studio) => {
+    setEditingId(s.id);
+    setStudioForm({
+      name: s.name, email: s.email ?? "", phone: s.phone ?? "", owner_name: s.owner_name ?? "",
+      plan: s.plan, billing_cycle: s.billing_cycle ?? "monthly",
+      subscription_started_at: s.subscription_started_at ?? new Date().toISOString().slice(0, 10),
+      status: s.status,
     });
+    setStudioOpen(true);
+  };
+
+  const saveStudio = async () => {
+    if (!studioForm.name) return toast.error("Inserisci il nome");
+    const payload = {
+      name: studioForm.name,
+      email: studioForm.email || null,
+      phone: studioForm.phone || null,
+      owner_name: studioForm.owner_name || null,
+      plan: studioForm.plan,
+      billing_cycle: studioForm.billing_cycle,
+      subscription_started_at: studioForm.subscription_started_at || null,
+      status: studioForm.status,
+    };
+    const { error } = editingId
+      ? await supabase.from("studios").update(payload).eq("id", editingId)
+      : await supabase.from("studios").insert(payload);
     if (error) return toast.error(error.message);
-    toast.success("Studio creato");
-    setCreateOpen(false);
-    setNewStudio({ name: "", email: "", plan: "free" });
+    toast.success(editingId ? "Studio aggiornato" : "Studio creato");
+    setStudioOpen(false);
     qc.invalidateQueries({ queryKey: ["admin-studios"] });
   };
 
@@ -91,148 +189,321 @@ function AdminPanel() {
     navigate({ to: "/" });
   };
 
-  const authorizeAdmin = async () => {
-    if (!authEmail || !authStudio) return toast.error("Compila tutti i campi");
-    // Lookup user via profiles (full_name often contains the email at signup)
-    const { data: prof } = await supabase.from("profiles").select("id, full_name").ilike("full_name", `%${authEmail}%`).limit(1).maybeSingle();
-    if (!prof?.id) return toast.error("Utente non trovato. L'utente deve essersi già registrato.");
-    const { error } = await supabase.from("admin_authorizations").insert({
-      admin_user_id: prof.id, studio_id: authStudio,
-    });
-    if (error) return toast.error(error.message);
-    await supabase.from("user_roles").insert({ user_id: prof.id, role: "authorized_admin", studio_id: authStudio });
-    toast.success("Admin autorizzato");
-    setAuthOpen(false); setAuthEmail(""); setAuthStudio("");
+  // ---- Staff dialogs ----
+  const [staffOpen, setStaffOpen] = useState(false);
+  const [staffEmail, setStaffEmail] = useState("");
+  const [staffRole, setStaffRole] = useState<AppRole>("support");
+  const [staffStudios, setStaffStudios] = useState<string[]>([]);
+  const [editStaff, setEditStaff] = useState<StaffRow | null>(null);
+
+  const studioIndex = useMemo(() => new Map(studios?.map((s) => [s.id, s.name])), [studios]);
+
+  const resetStaffForm = () => { setStaffEmail(""); setStaffRole("support"); setStaffStudios([]); setEditStaff(null); };
+
+  const openAddStaff = () => { resetStaffForm(); setStaffOpen(true); };
+  const openEditStaff = (row: StaffRow) => {
+    setEditStaff(row);
+    setStaffEmail(row.full_name ?? "");
+    setStaffRole((row.roles.find((r) => r !== "studio") ?? "support"));
+    setStaffStudios(row.studio_ids);
+    setStaffOpen(true);
+  };
+
+  const saveStaff = async () => {
+    if (!isSuperAdmin) return toast.error("Solo Super Admin può gestire lo staff");
+    let userId = editStaff?.user_id ?? null;
+    if (!userId) {
+      if (!staffEmail) return toast.error("Email utente richiesta");
+      const { data: prof } = await supabase
+        .from("profiles").select("id, full_name").ilike("full_name", `%${staffEmail}%`).limit(1).maybeSingle();
+      if (!prof?.id) return toast.error("Utente non trovato. Deve essersi già registrato.");
+      userId = prof.id;
+    }
+    // Reset existing staff roles + auths
+    await supabase.from("user_roles").delete().eq("user_id", userId).in("role", ["super_admin", "authorized_admin", "support"]);
+    await supabase.from("admin_authorizations").delete().eq("admin_user_id", userId);
+    // Insert new role
+    const { error: roleErr } = await supabase.from("user_roles").insert({ user_id: userId, role: staffRole });
+    if (roleErr) return toast.error(roleErr.message);
+    // Authorize for selected studios
+    if (staffStudios.length && (staffRole === "authorized_admin" || staffRole === "support")) {
+      const rows = staffStudios.map((studio_id) => ({ admin_user_id: userId!, studio_id }));
+      const { error: authErr } = await supabase.from("admin_authorizations").insert(rows);
+      if (authErr) return toast.error(authErr.message);
+    }
+    toast.success(editStaff ? "Membro staff aggiornato" : "Membro staff aggiunto");
+    setStaffOpen(false); resetStaffForm();
+    qc.invalidateQueries({ queryKey: ["admin-staff"] });
+  };
+
+  const removeStaff = async (row: StaffRow) => {
+    if (!isSuperAdmin) return toast.error("Solo Super Admin può rimuovere lo staff");
+    if (!confirm(`Rimuovere ${row.full_name ?? row.user_id} dallo staff?`)) return;
+    await supabase.from("admin_authorizations").delete().eq("admin_user_id", row.user_id);
+    await supabase.from("user_roles").delete().eq("user_id", row.user_id).in("role", ["super_admin", "authorized_admin", "support"]);
+    await supabase.from("user_roles").insert({ user_id: row.user_id, role: "studio" });
+    toast.success("Membro rimosso");
+    qc.invalidateQueries({ queryKey: ["admin-staff"] });
   };
 
   if (loading) {
     return <AppLayout><div className="text-sm text-muted-foreground">Caricamento permessi…</div></AppLayout>;
   }
-
-  if (!isSuperAdmin) return null;
+  if (!canAccess) return null;
 
   return (
     <AppLayout>
+      <TooltipProvider>
       <Tabs defaultValue="studios" className="space-y-6">
         <TabsList>
           <TabsTrigger value="studios">Studi</TabsTrigger>
+          <TabsTrigger value="staff">Staff interno</TabsTrigger>
           <TabsTrigger value="audit">Audit log</TabsTrigger>
         </TabsList>
 
+        {/* ---------- TAB STUDI ---------- */}
         <TabsContent value="studios">
           <Card className="p-6">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
               <h3 className="font-semibold">Account studio</h3>
+              <Button size="sm" className="bg-gradient-primary" onClick={openCreate}>
+                <Plus className="size-4 mr-1.5" />Nuovo studio
+              </Button>
+            </div>
+
+            <div className="overflow-x-auto -mx-6 px-6">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>Titolare</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Telefono</TableHead>
+                    <TableHead>Piano</TableHead>
+                    <TableHead>Scadenza</TableHead>
+                    <TableHead>
+                      <span className="inline-flex items-center gap-1">
+                        Rinnovo
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="size-3.5 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            Dati di fatturazione gestiti tramite Stripe. Integrazione disponibile nella versione Pro di DentAI.
+                          </TooltipContent>
+                        </Tooltip>
+                      </span>
+                    </TableHead>
+                    <TableHead>Stato</TableHead>
+                    <TableHead className="text-right whitespace-nowrap">Azioni</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {studios?.map((s) => (
+                    <TableRow key={s.id}>
+                      <TableCell className="font-medium whitespace-nowrap">{s.name}</TableCell>
+                      <TableCell className="whitespace-nowrap">{s.owner_name ?? "—"}</TableCell>
+                      <TableCell className="text-muted-foreground whitespace-nowrap">{s.email ?? "—"}</TableCell>
+                      <TableCell className="text-muted-foreground whitespace-nowrap">{s.phone ?? "—"}</TableCell>
+                      <TableCell><Badge variant="outline" className="capitalize">{s.plan} · {s.billing_cycle === "annual" ? "Annuale" : "Mensile"}</Badge></TableCell>
+                      <TableCell className="whitespace-nowrap text-muted-foreground">
+                        {s.subscription_expires_at ? new Date(s.subscription_expires_at).toLocaleDateString("it-IT") : "—"}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">{renewalBadge(s.subscription_expires_at)}</TableCell>
+                      <TableCell>
+                        <Badge variant={s.status === "active" ? "default" : "secondary"}>
+                          {s.status === "active" ? "Attivo" : "Sospeso"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right space-x-1 whitespace-nowrap">
+                        <Button size="sm" variant="outline" onClick={() => manage(s)}><Eye className="size-3.5 mr-1" />Gestisci</Button>
+                        <Button size="sm" variant="ghost" onClick={() => openEdit(s)}><Pencil className="size-3.5" /></Button>
+                        <Button size="sm" variant="ghost" onClick={() => toggleStatus(s)}>
+                          {s.status === "active" ? <Pause className="size-3.5" /> : <Play className="size-3.5" />}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </Card>
+        </TabsContent>
+
+        {/* ---------- TAB STAFF ---------- */}
+        <TabsContent value="staff">
+          <Card className="p-6">
+            <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
+              <div>
+                <h3 className="font-semibold">Staff interno DentAI</h3>
+                <p className="text-xs text-muted-foreground">Membri con accesso amministrativo separati dagli account studio.</p>
+              </div>
               {isSuperAdmin && (
-                <div className="flex gap-2">
-                  <Dialog open={authOpen} onOpenChange={setAuthOpen}>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" size="sm"><ShieldPlus className="size-4 mr-1.5" />Autorizza admin</Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader><DialogTitle>Autorizza un admin</DialogTitle></DialogHeader>
-                      <div className="space-y-3">
-                        <div><Label>Email utente</Label><Input value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} placeholder="utente@email.it" /></div>
-                        <div><Label>Studio</Label>
-                          <select className="w-full h-10 border rounded-md px-2 bg-background" value={authStudio} onChange={(e) => setAuthStudio(e.target.value)}>
-                            <option value="">Seleziona…</option>
-                            {studios?.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-                          </select>
-                        </div>
-                      </div>
-                      <DialogFooter><Button onClick={authorizeAdmin}>Autorizza</Button></DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-                  <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-                    <DialogTrigger asChild>
-                      <Button size="sm" className="bg-gradient-primary"><Plus className="size-4 mr-1.5" />Nuovo studio</Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader><DialogTitle>Nuovo account studio</DialogTitle></DialogHeader>
-                      <div className="space-y-3">
-                        <div><Label>Nome studio</Label><Input value={newStudio.name} onChange={(e) => setNewStudio({ ...newStudio, name: e.target.value })} /></div>
-                        <div><Label>Email</Label><Input value={newStudio.email} onChange={(e) => setNewStudio({ ...newStudio, email: e.target.value })} /></div>
-                        <div><Label>Piano</Label>
-                          <select className="w-full h-10 border rounded-md px-2 bg-background" value={newStudio.plan} onChange={(e) => setNewStudio({ ...newStudio, plan: e.target.value })}>
-                            <option value="free">Free</option>
-                            <option value="pro">Pro</option>
-                            <option value="business">Business</option>
-                          </select>
-                        </div>
-                      </div>
-                      <DialogFooter><Button onClick={createStudio}>Crea</Button></DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-                </div>
+                <Button size="sm" className="bg-gradient-primary" onClick={openAddStaff}>
+                  <UserPlus className="size-4 mr-1.5" />Aggiungi membro staff
+                </Button>
               )}
             </div>
 
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Registrato</TableHead>
-                  <TableHead>Stato</TableHead>
-                  <TableHead>Piano</TableHead>
-                  <TableHead className="text-right">Azioni</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {studios?.map((s) => (
-                  <TableRow key={s.id}>
-                    <TableCell className="font-medium">{s.name}</TableCell>
-                    <TableCell className="text-muted-foreground">{s.email ?? "—"}</TableCell>
-                    <TableCell className="text-muted-foreground">{new Date(s.created_at).toLocaleDateString("it-IT")}</TableCell>
-                    <TableCell>
-                      <Badge variant={s.status === "active" ? "default" : "secondary"}>
-                        {s.status === "active" ? "Attivo" : "Sospeso"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell><Badge variant="outline" className="capitalize">{s.plan}</Badge></TableCell>
-                    <TableCell className="text-right space-x-1">
-                      <Button size="sm" variant="outline" onClick={() => manage(s)}><Eye className="size-3.5 mr-1" />Gestisci</Button>
-                      {isSuperAdmin && (
-                        <Button size="sm" variant="ghost" onClick={() => toggleStatus(s)}>
-                          {s.status === "active" ? <><Pause className="size-3.5 mr-1" />Sospendi</> : <><Play className="size-3.5 mr-1" />Riattiva</>}
-                        </Button>
-                      )}
-                    </TableCell>
+            <div className="overflow-x-auto -mx-6 px-6">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>Ruolo</TableHead>
+                    <TableHead>Studi assegnati</TableHead>
+                    <TableHead>Stato</TableHead>
+                    <TableHead className="text-right">Azioni</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {staff?.length ? staff.map((row) => (
+                    <TableRow key={row.user_id}>
+                      <TableCell className="font-medium">{row.full_name ?? row.user_id.slice(0, 8)}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {row.roles.filter((r) => r !== "studio").map((r) => (
+                            <Badge key={r} variant="outline">{roleLabel(r)}</Badge>
+                          ))}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {row.roles.includes("super_admin") ? "Tutti" :
+                          row.studio_ids.length ? row.studio_ids.map((id) => studioIndex.get(id) ?? id.slice(0, 6)).join(", ") : "—"}
+                      </TableCell>
+                      <TableCell><Badge>Attivo</Badge></TableCell>
+                      <TableCell className="text-right space-x-1">
+                        {isSuperAdmin && (
+                          <>
+                            <Button size="sm" variant="ghost" onClick={() => openEditStaff(row)}><Pencil className="size-3.5 mr-1" />Modifica ruolo</Button>
+                            <Button size="sm" variant="ghost" onClick={() => removeStaff(row)}><Trash2 className="size-3.5 mr-1" />Rimuovi</Button>
+                          </>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  )) : (
+                    <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">Nessun membro staff</TableCell></TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </Card>
         </TabsContent>
 
+        {/* ---------- TAB AUDIT ---------- */}
         <TabsContent value="audit">
           <Card className="p-6">
             <h3 className="font-semibold mb-4">Audit log — ultime 50 modifiche</h3>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Quando</TableHead>
-                  <TableHead>Azione</TableHead>
-                  <TableHead>Entità</TableHead>
-                  <TableHead>Utente</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {audit?.length ? audit.map((a) => (
-                  <TableRow key={a.id}>
-                    <TableCell className="text-muted-foreground text-xs">{new Date(a.created_at).toLocaleString("it-IT")}</TableCell>
-                    <TableCell><Badge variant="outline">{a.action}</Badge></TableCell>
-                    <TableCell>{a.entity}{a.entity_id ? ` · ${a.entity_id.slice(0, 8)}` : ""}</TableCell>
-                    <TableCell className="text-muted-foreground text-xs">{a.user_id?.slice(0, 8) ?? "—"}</TableCell>
+            <div className="overflow-x-auto -mx-6 px-6">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Quando</TableHead>
+                    <TableHead>Azione</TableHead>
+                    <TableHead>Entità</TableHead>
+                    <TableHead>Utente</TableHead>
                   </TableRow>
-                )) : (
-                  <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">Nessuna modifica registrata</TableCell></TableRow>
-                )}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {audit?.length ? audit.map((a) => (
+                    <TableRow key={a.id}>
+                      <TableCell className="text-muted-foreground text-xs">{new Date(a.created_at).toLocaleString("it-IT")}</TableCell>
+                      <TableCell><Badge variant="outline">{a.action}</Badge></TableCell>
+                      <TableCell>{a.entity}{a.entity_id ? ` · ${a.entity_id.slice(0, 8)}` : ""}</TableCell>
+                      <TableCell className="text-muted-foreground text-xs">{a.user_id?.slice(0, 8) ?? "—"}</TableCell>
+                    </TableRow>
+                  )) : (
+                    <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">Nessuna modifica registrata</TableCell></TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* ---------- DIALOG STUDIO ---------- */}
+      <Dialog open={studioOpen} onOpenChange={setStudioOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>{editingId ? "Modifica studio" : "Nuovo account studio"}</DialogTitle></DialogHeader>
+          <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-1">
+            <div><Label>Nome studio</Label><Input value={studioForm.name} onChange={(e) => setStudioForm({ ...studioForm, name: e.target.value })} /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label>Email</Label><Input value={studioForm.email} onChange={(e) => setStudioForm({ ...studioForm, email: e.target.value })} /></div>
+              <div><Label>Telefono studio</Label><Input value={studioForm.phone} onChange={(e) => setStudioForm({ ...studioForm, phone: e.target.value })} /></div>
+            </div>
+            <div><Label>Nome titolare/rappresentante</Label><Input value={studioForm.owner_name} onChange={(e) => setStudioForm({ ...studioForm, owner_name: e.target.value })} /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Piano</Label>
+                <select className="w-full h-10 border rounded-md px-2 bg-background" value={studioForm.plan} onChange={(e) => setStudioForm({ ...studioForm, plan: e.target.value })}>
+                  {PLAN_OPTIONS.map((p) => <option key={p} value={p} className="capitalize">{p}</option>)}
+                </select>
+              </div>
+              <div>
+                <Label>Tipo abbonamento</Label>
+                <select className="w-full h-10 border rounded-md px-2 bg-background" value={studioForm.billing_cycle} onChange={(e) => setStudioForm({ ...studioForm, billing_cycle: e.target.value })}>
+                  {CYCLE_OPTIONS.map((c) => <option key={c} value={c}>{c === "annual" ? "Annuale" : "Mensile"}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Data inizio abbonamento</Label>
+                <Input type="date" value={studioForm.subscription_started_at} onChange={(e) => setStudioForm({ ...studioForm, subscription_started_at: e.target.value })} />
+              </div>
+              <div>
+                <Label>Stato</Label>
+                <select className="w-full h-10 border rounded-md px-2 bg-background" value={studioForm.status} onChange={(e) => setStudioForm({ ...studioForm, status: e.target.value })}>
+                  <option value="active">Attivo</option>
+                  <option value="suspended">Sospeso</option>
+                </select>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">La data di scadenza viene calcolata automaticamente: +30 giorni se mensile, +365 giorni se annuale.</p>
+          </div>
+          <DialogFooter><Button onClick={saveStudio}>{editingId ? "Salva modifiche" : "Crea studio"}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ---------- DIALOG STAFF ---------- */}
+      <Dialog open={staffOpen} onOpenChange={setStaffOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>{editStaff ? "Modifica membro staff" : "Aggiungi membro staff"}</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            {!editStaff && (
+              <div>
+                <Label>Email utente (deve essere già registrato)</Label>
+                <Input value={staffEmail} onChange={(e) => setStaffEmail(e.target.value)} placeholder="utente@email.it" />
+              </div>
+            )}
+            <div>
+              <Label>Ruolo</Label>
+              <select className="w-full h-10 border rounded-md px-2 bg-background" value={staffRole} onChange={(e) => setStaffRole(e.target.value as AppRole)}>
+                {STAFF_ROLE_OPTIONS.map((r) => <option key={r} value={r}>{roleLabel(r)}</option>)}
+              </select>
+            </div>
+            {staffRole !== "super_admin" && (
+              <div>
+                <Label>Studi assegnati</Label>
+                <div className="border rounded-md p-2 max-h-44 overflow-y-auto space-y-1">
+                  {studios?.map((s) => (
+                    <label key={s.id} className="flex items-center gap-2 text-sm">
+                      <input type="checkbox" checked={staffStudios.includes(s.id)} onChange={(e) => {
+                        setStaffStudios((prev) => e.target.checked ? [...prev, s.id] : prev.filter((x) => x !== s.id));
+                      }} />
+                      {s.name}
+                    </label>
+                  ))}
+                  {!studios?.length && <p className="text-xs text-muted-foreground">Nessuno studio disponibile.</p>}
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter><Button onClick={saveStaff}>{editStaff ? "Salva" : "Aggiungi"}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+      </TooltipProvider>
     </AppLayout>
   );
 }
