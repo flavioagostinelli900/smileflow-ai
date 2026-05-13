@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/useAuth";
 
-export type AppRole = "super_admin" | "authorized_admin" | "studio";
+export type AppRole = "super_admin" | "authorized_admin" | "studio" | "support";
 
 const IMPERSONATE_KEY = "dentai_impersonate_studio";
 
