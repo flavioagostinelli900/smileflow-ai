@@ -30,26 +30,17 @@ export const Route = createFileRoute("/")({
   }),
 });
 
-const PRESETS: Record<string, { label: string; days: number | null }> = {
-  today: { label: "Oggi", days: 0 },
-  yesterday: { label: "Ieri", days: -1 },
-  "7": { label: "Ultimi 7 giorni", days: 7 },
-  "30": { label: "Ultimi 30 giorni", days: 30 },
-  "90": { label: "Ultimi 90 giorni", days: 90 },
-  custom: { label: "Personalizza", days: null },
-};
+const PRESETS = [
+  { key: "7", label: "7gg", days: 7 },
+  { key: "30", label: "30gg", days: 30 },
+  { key: "90", label: "90gg", days: 90 },
+] as const;
 
 const STORAGE_KEY = "dentai_dashboard_range";
 
-function rangeFromPreset(p: string): { from: Date; to: Date } {
+function rangeFromDays(days: number): { from: Date; to: Date } {
   const to = new Date();
   const from = new Date();
-  if (p === "today") return { from, to };
-  if (p === "yesterday") {
-    from.setDate(from.getDate() - 1); to.setDate(to.getDate() - 1);
-    return { from, to };
-  }
-  const days = PRESETS[p]?.days ?? 7;
   from.setDate(from.getDate() - (days - 1));
   return { from, to };
 }
@@ -61,9 +52,10 @@ function Dashboard() {
     if (typeof window === "undefined") return "7";
     return sessionStorage.getItem(STORAGE_KEY) || "7";
   });
-  const [customRange, setCustomRange] = useState<DateRange | undefined>(undefined);
+  const [draftRange, setDraftRange] = useState<DateRange | undefined>(undefined);
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [appliedCustom, setAppliedCustom] = useState<DateRange | undefined>(undefined);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (typeof window !== "undefined") sessionStorage.setItem(STORAGE_KEY, preset);
@@ -73,10 +65,10 @@ function Dashboard() {
     if (preset === "custom" && appliedCustom?.from && appliedCustom?.to) {
       return { from: appliedCustom.from, to: appliedCustom.to };
     }
-    return rangeFromPreset(preset);
+    const days = PRESETS.find((p) => p.key === preset)?.days ?? 7;
+    return rangeFromDays(days);
   }, [preset, appliedCustom]);
 
-  // Mock data scaling by range length so numbers visibly change
   const days = Math.max(1, Math.round((range.to.getTime() - range.from.getTime()) / 86400000) + 1);
   const scale = days / 7;
   const stats = {
@@ -117,59 +109,12 @@ function Dashboard() {
 
   const rangeLabel = preset === "custom" && appliedCustom?.from && appliedCustom?.to
     ? `${fmt(appliedCustom.from)} - ${fmt(appliedCustom.to)}`
-    : PRESETS[preset]?.label ?? "Ultimi 7 giorni";
+    : `Ultimi ${PRESETS.find((p) => p.key === preset)?.days ?? 7} giorni`;
 
   return (
     <AppLayout>
-      {/* Range selector */}
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-        <p className="text-sm text-muted-foreground">Periodo: <span className="font-medium text-foreground">{rangeLabel}</span></p>
-        <div className="flex items-center gap-2 ml-auto">
-          {preset === "custom" && (
-            <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2">
-                  <CalendarIcon className="size-4" />
-                  {appliedCustom?.from && appliedCustom?.to
-                    ? `${fmt(appliedCustom.from)} - ${fmt(appliedCustom.to)}`
-                    : "GG/MM/AAAA - GG/MM/AAAA"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="end">
-                <CalendarPicker
-                  mode="range"
-                  numberOfMonths={2}
-                  selected={customRange}
-                  onSelect={setCustomRange}
-                  className={cn("p-3 pointer-events-auto")}
-                />
-                <div className="flex justify-end gap-2 p-3 border-t">
-                  <Button variant="ghost" size="sm" onClick={() => { setCustomRange(undefined); setAppliedCustom(undefined); }}>
-                    Cancella
-                  </Button>
-                  <Button size="sm" onClick={() => {
-                    if (customRange?.from && customRange?.to) {
-                      setAppliedCustom(customRange);
-                      setPopoverOpen(false);
-                    }
-                  }}>Applica</Button>
-                </div>
-              </PopoverContent>
-            </Popover>
-          )}
-          <Select value={preset} onValueChange={setPreset}>
-            <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {Object.entries(PRESETS).map(([k, v]) => (
-                <SelectItem key={k} value={k}>{v.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
       {/* Hero strip */}
-      <div className="rounded-2xl bg-gradient-hero text-primary-foreground p-6 md:p-8 mb-8 shadow-elevated relative overflow-hidden">
+      <div className="rounded-2xl bg-gradient-hero text-primary-foreground p-6 md:p-8 mb-4 shadow-elevated relative overflow-hidden">
         <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_20%_20%,white,transparent_40%)]" />
         <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="min-w-0">
@@ -193,6 +138,69 @@ function Dashboard() {
               <div className="text-xs text-primary-foreground/70">Recuperato</div>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Date pill selector */}
+      <div className="flex justify-end mb-6">
+        <div className="flex items-center gap-1 overflow-x-auto p-1 rounded-full bg-muted/60 border max-w-full">
+          {PRESETS.map((p) => (
+            <button
+              key={p.key}
+              onClick={() => setPreset(p.key)}
+              className={cn(
+                "px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors",
+                preset === p.key
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {p.label}
+            </button>
+          ))}
+          <Popover open={popoverOpen} onOpenChange={(v) => { setPopoverOpen(v); if (v) setDraftRange(appliedCustom); }}>
+            <PopoverTrigger asChild>
+              <button
+                className={cn(
+                  "px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors flex items-center gap-1.5",
+                  preset === "custom"
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <CalendarIcon className="size-3.5" />
+                {preset === "custom" && appliedCustom?.from && appliedCustom?.to
+                  ? `${fmt(appliedCustom.from)} – ${fmt(appliedCustom.to)}`
+                  : "Personalizza"}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <CalendarPicker
+                mode="range"
+                numberOfMonths={isMobile ? 1 : 2}
+                selected={draftRange}
+                onSelect={setDraftRange}
+                locale={it}
+                disabled={{ after: new Date() }}
+                className={cn("p-3 pointer-events-auto")}
+              />
+              <div className="flex justify-end gap-2 p-3 border-t">
+                <Button variant="ghost" size="sm" onClick={() => {
+                  setDraftRange(undefined);
+                  setAppliedCustom(undefined);
+                  setPreset("7");
+                  setPopoverOpen(false);
+                }}>Cancella</Button>
+                <Button size="sm" onClick={() => {
+                  if (draftRange?.from && draftRange?.to) {
+                    setAppliedCustom(draftRange);
+                    setPreset("custom");
+                    setPopoverOpen(false);
+                  }
+                }}>Applica</Button>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 
