@@ -11,12 +11,14 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UpsellRouteImport } from './routes/upsell'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RemindersRouteImport } from './routes/reminders'
 import { Route as ReceptionRouteImport } from './routes/reception'
 import { Route as OperatorsRouteImport } from './routes/operators'
 import { Route as MissedCallsRouteImport } from './routes/missed-calls'
 import { Route as LoyaltyRouteImport } from './routes/loyalty'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as FollowupRouteImport } from './routes/followup'
 import { Route as ClientsRouteImport } from './routes/clients'
 import { Route as ChatRouteImport } from './routes/chat'
@@ -38,6 +40,11 @@ const UpsellRoute = UpsellRouteImport.update({
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RemindersRoute = RemindersRouteImport.update({
@@ -68,6 +75,11 @@ const LoyaltyRoute = LoyaltyRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FollowupRoute = FollowupRouteImport.update({
@@ -139,12 +151,14 @@ export interface FileRoutesByFullPath {
   '/chat': typeof ChatRoute
   '/clients': typeof ClientsRouteWithChildren
   '/followup': typeof FollowupRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/loyalty': typeof LoyaltyRoute
   '/missed-calls': typeof MissedCallsRoute
   '/operators': typeof OperatorsRouteWithChildren
   '/reception': typeof ReceptionRoute
   '/reminders': typeof RemindersRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/settings': typeof SettingsRoute
   '/upsell': typeof UpsellRoute
   '/api/chat': typeof ApiChatRoute
@@ -161,12 +175,14 @@ export interface FileRoutesByTo {
   '/chat': typeof ChatRoute
   '/clients': typeof ClientsRouteWithChildren
   '/followup': typeof FollowupRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/loyalty': typeof LoyaltyRoute
   '/missed-calls': typeof MissedCallsRoute
   '/operators': typeof OperatorsRouteWithChildren
   '/reception': typeof ReceptionRoute
   '/reminders': typeof RemindersRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/settings': typeof SettingsRoute
   '/upsell': typeof UpsellRoute
   '/api/chat': typeof ApiChatRoute
@@ -184,12 +200,14 @@ export interface FileRoutesById {
   '/chat': typeof ChatRoute
   '/clients': typeof ClientsRouteWithChildren
   '/followup': typeof FollowupRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/loyalty': typeof LoyaltyRoute
   '/missed-calls': typeof MissedCallsRoute
   '/operators': typeof OperatorsRouteWithChildren
   '/reception': typeof ReceptionRoute
   '/reminders': typeof RemindersRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/settings': typeof SettingsRoute
   '/upsell': typeof UpsellRoute
   '/api/chat': typeof ApiChatRoute
@@ -208,12 +226,14 @@ export interface FileRouteTypes {
     | '/chat'
     | '/clients'
     | '/followup'
+    | '/forgot-password'
     | '/login'
     | '/loyalty'
     | '/missed-calls'
     | '/operators'
     | '/reception'
     | '/reminders'
+    | '/reset-password'
     | '/settings'
     | '/upsell'
     | '/api/chat'
@@ -230,12 +250,14 @@ export interface FileRouteTypes {
     | '/chat'
     | '/clients'
     | '/followup'
+    | '/forgot-password'
     | '/login'
     | '/loyalty'
     | '/missed-calls'
     | '/operators'
     | '/reception'
     | '/reminders'
+    | '/reset-password'
     | '/settings'
     | '/upsell'
     | '/api/chat'
@@ -252,12 +274,14 @@ export interface FileRouteTypes {
     | '/chat'
     | '/clients'
     | '/followup'
+    | '/forgot-password'
     | '/login'
     | '/loyalty'
     | '/missed-calls'
     | '/operators'
     | '/reception'
     | '/reminders'
+    | '/reset-password'
     | '/settings'
     | '/upsell'
     | '/api/chat'
@@ -275,12 +299,14 @@ export interface RootRouteChildren {
   ChatRoute: typeof ChatRoute
   ClientsRoute: typeof ClientsRouteWithChildren
   FollowupRoute: typeof FollowupRoute
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
   LoyaltyRoute: typeof LoyaltyRoute
   MissedCallsRoute: typeof MissedCallsRoute
   OperatorsRoute: typeof OperatorsRouteWithChildren
   ReceptionRoute: typeof ReceptionRoute
   RemindersRoute: typeof RemindersRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   SettingsRoute: typeof SettingsRoute
   UpsellRoute: typeof UpsellRoute
   ApiChatRoute: typeof ApiChatRoute
@@ -302,6 +328,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reminders': {
@@ -344,6 +377,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/followup': {
@@ -464,12 +504,14 @@ const rootRouteChildren: RootRouteChildren = {
   ChatRoute: ChatRoute,
   ClientsRoute: ClientsRouteWithChildren,
   FollowupRoute: FollowupRoute,
+  ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
   LoyaltyRoute: LoyaltyRoute,
   MissedCallsRoute: MissedCallsRoute,
   OperatorsRoute: OperatorsRouteWithChildren,
   ReceptionRoute: ReceptionRoute,
   RemindersRoute: RemindersRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   SettingsRoute: SettingsRoute,
   UpsellRoute: UpsellRoute,
   ApiChatRoute: ApiChatRoute,

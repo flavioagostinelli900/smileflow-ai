@@ -3,25 +3,19 @@ import { AppLayout } from "@/components/AppLayout";
 import { StatCard } from "@/components/StatCard";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Calendar as CalendarIcon, UserCheck, PhoneIncoming, Send, MessagesSquare, Sparkles, Calendar } from "lucide-react";
 import {
-  Calendar,
-  UserCheck,
-  PhoneIncoming,
-  Send,
-  MessagesSquare,
-  Sparkles,
-} from "lucide-react";
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarPicker } from "@/components/ui/calendar";
+import { useEffect, useMemo, useState } from "react";
 import {
-  Area,
-  AreaChart,
-  Bar,
-  BarChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
+  Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
+import { cn } from "@/lib/utils";
+import type { DateRange } from "react-day-picker";
 
 export const Route = createFileRoute("/")({
   component: Dashboard,
@@ -37,81 +31,190 @@ export const Route = createFileRoute("/")({
   }),
 });
 
-const trend = [
-  { d: "Lun", appt: 18, recovered: 6 },
-  { d: "Mar", appt: 24, recovered: 9 },
-  { d: "Mer", appt: 22, recovered: 11 },
-  { d: "Gio", appt: 31, recovered: 14 },
-  { d: "Ven", appt: 28, recovered: 12 },
-  { d: "Sab", appt: 16, recovered: 5 },
-  { d: "Dom", appt: 9, recovered: 3 },
-];
+const PRESETS: Record<string, { label: string; days: number | null }> = {
+  today: { label: "Oggi", days: 0 },
+  yesterday: { label: "Ieri", days: -1 },
+  "7": { label: "Ultimi 7 giorni", days: 7 },
+  "30": { label: "Ultimi 30 giorni", days: 30 },
+  "90": { label: "Ultimi 90 giorni", days: 90 },
+  custom: { label: "Personalizza", days: null },
+};
 
-const channels = [
-  { name: "Follow-up", v: 412 },
-  { name: "Inattivi", v: 287 },
-  { name: "Chiamate", v: 164 },
-  { name: "Igiene", v: 198 },
-  { name: "Post-visita", v: 124 },
-];
+const STORAGE_KEY = "dentai_dashboard_range";
 
-const recentConvos = [
-  { name: "Giulia Romano", msg: "Sì, va bene martedì mattina alle 10", tag: "Igiene", status: "AI" },
-  { name: "Marco Bianchi", msg: "Posso spostare al pomeriggio?", tag: "Conservativa", status: "Operatore" },
-  { name: "Sara Conti", msg: "Grazie, confermo l'appuntamento", tag: "Recupero", status: "Convertito" },
-  { name: "Luca De Santis", msg: "Mi richiamate per favore?", tag: "Chiamata persa", status: "AI" },
-  { name: "Elena Ferri", msg: "Perfetto, a giovedì!", tag: "Follow-up", status: "Convertito" },
-];
+function rangeFromPreset(p: string): { from: Date; to: Date } {
+  const to = new Date();
+  const from = new Date();
+  if (p === "today") return { from, to };
+  if (p === "yesterday") {
+    from.setDate(from.getDate() - 1); to.setDate(to.getDate() - 1);
+    return { from, to };
+  }
+  const days = PRESETS[p]?.days ?? 7;
+  from.setDate(from.getDate() - (days - 1));
+  return { from, to };
+}
+
+function fmt(d: Date) { return d.toLocaleDateString("it-IT"); }
 
 function Dashboard() {
+  const [preset, setPreset] = useState<string>(() => {
+    if (typeof window === "undefined") return "7";
+    return sessionStorage.getItem(STORAGE_KEY) || "7";
+  });
+  const [customRange, setCustomRange] = useState<DateRange | undefined>(undefined);
+  const [popoverOpen, setPopoverOpen] = useState(false);
+  const [appliedCustom, setAppliedCustom] = useState<DateRange | undefined>(undefined);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") sessionStorage.setItem(STORAGE_KEY, preset);
+  }, [preset]);
+
+  const range = useMemo(() => {
+    if (preset === "custom" && appliedCustom?.from && appliedCustom?.to) {
+      return { from: appliedCustom.from, to: appliedCustom.to };
+    }
+    return rangeFromPreset(preset);
+  }, [preset, appliedCustom]);
+
+  // Mock data scaling by range length so numbers visibly change
+  const days = Math.max(1, Math.round((range.to.getTime() - range.from.getTime()) / 86400000) + 1);
+  const scale = days / 7;
+  const stats = {
+    appts: Math.round(148 * scale),
+    recovered: Math.round(62 * scale),
+    calls: Math.round(37 * scale),
+    msgs: Math.round(1284 * scale),
+    convos: Math.round(29 * Math.max(1, scale * 0.6)),
+    revenue: (12.4 * scale).toFixed(1),
+    response: 94,
+  };
+
+  const trend = useMemo(() => {
+    const labels = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"];
+    const len = Math.min(14, Math.max(3, days));
+    return Array.from({ length: len }).map((_, i) => ({
+      d: len <= 7 ? labels[i % 7] : `G${i + 1}`,
+      appt: Math.round(15 + Math.random() * 18 * scale),
+      recovered: Math.round(4 + Math.random() * 10 * scale),
+    }));
+  }, [days, scale]);
+
+  const channels = [
+    { name: "Follow-up", v: Math.round(412 * scale) },
+    { name: "Inattivi", v: Math.round(287 * scale) },
+    { name: "Chiamate", v: Math.round(164 * scale) },
+    { name: "Igiene", v: Math.round(198 * scale) },
+    { name: "Post-visita", v: Math.round(124 * scale) },
+  ];
+
+  const recentConvos = [
+    { name: "Giulia Romano", msg: "Sì, va bene martedì mattina alle 10", tag: "Igiene", status: "AI" },
+    { name: "Marco Bianchi", msg: "Posso spostare al pomeriggio?", tag: "Conservativa", status: "Operatore" },
+    { name: "Sara Conti", msg: "Grazie, confermo l'appuntamento", tag: "Recupero", status: "Convertito" },
+    { name: "Luca De Santis", msg: "Mi richiamate per favore?", tag: "Chiamata persa", status: "AI" },
+    { name: "Elena Ferri", msg: "Perfetto, a giovedì!", tag: "Follow-up", status: "Convertito" },
+  ];
+
+  const rangeLabel = preset === "custom" && appliedCustom?.from && appliedCustom?.to
+    ? `${fmt(appliedCustom.from)} - ${fmt(appliedCustom.to)}`
+    : PRESETS[preset]?.label ?? "Ultimi 7 giorni";
+
   return (
     <AppLayout>
+      {/* Range selector */}
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+        <p className="text-sm text-muted-foreground">Periodo: <span className="font-medium text-foreground">{rangeLabel}</span></p>
+        <div className="flex items-center gap-2 ml-auto">
+          {preset === "custom" && (
+            <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <CalendarIcon className="size-4" />
+                  {appliedCustom?.from && appliedCustom?.to
+                    ? `${fmt(appliedCustom.from)} - ${fmt(appliedCustom.to)}`
+                    : "GG/MM/AAAA - GG/MM/AAAA"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <CalendarPicker
+                  mode="range"
+                  numberOfMonths={2}
+                  selected={customRange}
+                  onSelect={setCustomRange}
+                  className={cn("p-3 pointer-events-auto")}
+                />
+                <div className="flex justify-end gap-2 p-3 border-t">
+                  <Button variant="ghost" size="sm" onClick={() => { setCustomRange(undefined); setAppliedCustom(undefined); }}>
+                    Cancella
+                  </Button>
+                  <Button size="sm" onClick={() => {
+                    if (customRange?.from && customRange?.to) {
+                      setAppliedCustom(customRange);
+                      setPopoverOpen(false);
+                    }
+                  }}>Applica</Button>
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
+          <Select value={preset} onValueChange={setPreset}>
+            <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {Object.entries(PRESETS).map(([k, v]) => (
+                <SelectItem key={k} value={k}>{v.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
       {/* Hero strip */}
       <div className="rounded-2xl bg-gradient-hero text-primary-foreground p-6 md:p-8 mb-8 shadow-elevated relative overflow-hidden">
         <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_20%_20%,white,transparent_40%)]" />
         <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
+          <div className="min-w-0">
             <div className="inline-flex items-center gap-2 text-xs bg-white/15 backdrop-blur px-3 py-1 rounded-full mb-3">
               <Sparkles className="size-3" /> AI Assistant attivo
             </div>
-            <h2 className="text-2xl md:text-3xl font-semibold tracking-tight">
+            <h2 className="text-xl md:text-3xl font-semibold tracking-tight">
               Benvenuto, Studio Dentistico Rossi
             </h2>
             <p className="text-primary-foreground/80 mt-1 text-sm">
-              Oggi l'AI ha generato 28 prenotazioni e recuperato 14 pazienti inattivi.
+              Nel periodo selezionato l'AI ha generato {stats.appts} prenotazioni e recuperato {stats.recovered} pazienti.
             </p>
           </div>
-          <div className="flex gap-6">
+          <div className="flex gap-6 shrink-0">
             <div>
-              <div className="text-3xl font-semibold">94%</div>
+              <div className="text-2xl md:text-3xl font-semibold">{stats.response}%</div>
               <div className="text-xs text-primary-foreground/70">Tasso risposta</div>
             </div>
             <div>
-              <div className="text-3xl font-semibold">€12.4k</div>
-              <div className="text-xs text-primary-foreground/70">Recuperato 30gg</div>
+              <div className="text-2xl md:text-3xl font-semibold">€{stats.revenue}k</div>
+              <div className="text-xs text-primary-foreground/70">Recuperato</div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-        <StatCard label="Appuntamenti generati" value="148" delta={12} icon={Calendar} tone="primary" />
-        <StatCard label="Clienti recuperati" value="62" delta={8} icon={UserCheck} tone="success" />
-        <StatCard label="Chiamate recuperate" value="37" delta={-3} icon={PhoneIncoming} tone="warning" />
-        <StatCard label="Messaggi inviati" value="1.284" delta={22} icon={Send} tone="info" />
-        <StatCard label="Conversazioni attive" value="29" delta={5} icon={MessagesSquare} />
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4 mb-8">
+        <StatCard label="Appuntamenti generati" value={String(stats.appts)} delta={12} icon={Calendar} tone="primary" />
+        <StatCard label="Clienti recuperati" value={String(stats.recovered)} delta={8} icon={UserCheck} tone="success" />
+        <StatCard label="Chiamate recuperate" value={String(stats.calls)} delta={-3} icon={PhoneIncoming} tone="warning" />
+        <StatCard label="Messaggi inviati" value={stats.msgs.toLocaleString("it-IT")} delta={22} icon={Send} tone="info" />
+        <StatCard label="Conversazioni attive" value={String(stats.convos)} delta={5} icon={MessagesSquare} />
       </div>
 
       {/* Charts */}
       <div className="grid lg:grid-cols-3 gap-6 mb-8">
-        <Card className="lg:col-span-2 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
+        <Card className="lg:col-span-2 p-4 md:p-6">
+          <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
+            <div className="min-w-0">
               <h3 className="font-semibold">Appuntamenti & recuperi</h3>
-              <p className="text-xs text-muted-foreground">Ultimi 7 giorni</p>
+              <p className="text-xs text-muted-foreground truncate">{rangeLabel}</p>
             </div>
-            <Badge variant="outline" className="text-xs">+18% vs settimana scorsa</Badge>
+            <Badge variant="outline" className="text-xs whitespace-nowrap">+18% vs periodo precedente</Badge>
           </div>
           <ResponsiveContainer width="100%" height={260}>
             <AreaChart data={trend}>
@@ -128,35 +231,21 @@ function Dashboard() {
               <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
               <XAxis dataKey="d" stroke="var(--color-muted-foreground)" fontSize={12} tickLine={false} axisLine={false} />
               <YAxis stroke="var(--color-muted-foreground)" fontSize={12} tickLine={false} axisLine={false} />
-              <Tooltip
-                contentStyle={{
-                  background: "var(--color-popover)",
-                  border: "1px solid var(--color-border)",
-                  borderRadius: "8px",
-                  fontSize: "12px",
-                }}
-              />
+              <Tooltip contentStyle={{ background: "var(--color-popover)", border: "1px solid var(--color-border)", borderRadius: "8px", fontSize: "12px" }} />
               <Area type="monotone" dataKey="appt" stroke="var(--color-primary)" fill="url(#g1)" strokeWidth={2} />
               <Area type="monotone" dataKey="recovered" stroke="var(--color-success)" fill="url(#g2)" strokeWidth={2} />
             </AreaChart>
           </ResponsiveContainer>
         </Card>
 
-        <Card className="p-6">
+        <Card className="p-4 md:p-6">
           <h3 className="font-semibold mb-1">Canali AI</h3>
-          <p className="text-xs text-muted-foreground mb-4">Distribuzione messaggi</p>
+          <p className="text-xs text-muted-foreground mb-4 truncate">{rangeLabel}</p>
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={channels} layout="vertical" margin={{ left: 10 }}>
               <XAxis type="number" hide />
               <YAxis dataKey="name" type="category" stroke="var(--color-muted-foreground)" fontSize={12} tickLine={false} axisLine={false} width={80} />
-              <Tooltip
-                contentStyle={{
-                  background: "var(--color-popover)",
-                  border: "1px solid var(--color-border)",
-                  borderRadius: "8px",
-                  fontSize: "12px",
-                }}
-              />
+              <Tooltip contentStyle={{ background: "var(--color-popover)", border: "1px solid var(--color-border)", borderRadius: "8px", fontSize: "12px" }} />
               <Bar dataKey="v" fill="var(--color-primary)" radius={[0, 6, 6, 0]} />
             </BarChart>
           </ResponsiveContainer>
@@ -164,34 +253,35 @@ function Dashboard() {
       </div>
 
       {/* Recent convos */}
-      <Card className="p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
+      <Card className="p-4 md:p-6">
+        <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
+          <div className="min-w-0">
             <h3 className="font-semibold">Conversazioni recenti</h3>
             <p className="text-xs text-muted-foreground">Stato live delle chat AI</p>
           </div>
         </div>
         <div className="divide-y">
           {recentConvos.map((c, i) => (
-            <div key={i} className="py-3 flex items-center gap-4">
-              <div className="size-9 rounded-full bg-gradient-primary text-primary-foreground flex items-center justify-center text-xs font-medium">
+            <div key={i} className="py-3 flex items-center gap-3 min-w-0">
+              <div className="size-9 shrink-0 rounded-full bg-gradient-primary text-primary-foreground flex items-center justify-center text-xs font-medium">
                 {c.name.split(" ").map((n) => n[0]).join("")}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-sm">{c.name}</span>
-                  <Badge variant="secondary" className="text-[10px] py-0 h-4">{c.tag}</Badge>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-medium text-sm truncate max-w-[60%]">{c.name}</span>
+                  <Badge variant="secondary" className="text-[10px] py-0 h-4 shrink-0">{c.tag}</Badge>
                 </div>
                 <p className="text-xs text-muted-foreground truncate">{c.msg}</p>
               </div>
               <Badge
-                className={
+                className={cn(
+                  "shrink-0 whitespace-nowrap",
                   c.status === "Convertito"
                     ? "bg-success/15 text-success hover:bg-success/15"
                     : c.status === "AI"
                       ? "bg-accent text-accent-foreground hover:bg-accent"
-                      : "bg-info/15 text-info hover:bg-info/15"
-                }
+                      : "bg-info/15 text-info hover:bg-info/15",
+                )}
               >
                 {c.status}
               </Badge>

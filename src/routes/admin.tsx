@@ -19,6 +19,7 @@ import { usePermissions, setImpersonatedStudioId, type AppRole } from "@/lib/use
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Eye, Pause, Play, Plus, Pencil, Trash2, Info, UserPlus } from "lucide-react";
+import { AdminSupportTickets } from "@/components/AdminSupportTickets";
 
 export const Route = createFileRoute("/admin")({
   component: AdminPanel,
@@ -258,6 +259,7 @@ function AdminPanel() {
         <TabsList>
           <TabsTrigger value="studios">Studi</TabsTrigger>
           <TabsTrigger value="staff">Staff interno</TabsTrigger>
+          <TabsTrigger value="tickets">Ticket supporto</TabsTrigger>
           <TabsTrigger value="audit">Audit log</TabsTrigger>
         </TabsList>
 
@@ -388,6 +390,11 @@ function AdminPanel() {
               </Table>
             </div>
           </Card>
+        </TabsContent>
+
+        {/* ---------- TAB TICKETS ---------- */}
+        <TabsContent value="tickets">
+          <AdminSupportTickets studios={studios?.map((s) => ({ id: s.id, name: s.name }))} />
         </TabsContent>
 
         {/* ---------- TAB AUDIT ---------- */}

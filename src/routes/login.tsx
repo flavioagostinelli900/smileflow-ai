@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Sparkles } from "lucide-react";
@@ -20,6 +21,7 @@ function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [remember, setRemember] = useState(true);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -28,12 +30,23 @@ function Login() {
     });
   }, [navigate]);
 
+  const applyRememberFlag = () => {
+    if (typeof window === "undefined") return;
+    if (remember) {
+      localStorage.setItem("dentai_remember", "1");
+    } else {
+      localStorage.removeItem("dentai_remember");
+    }
+    sessionStorage.setItem("dentai_session_alive", "1");
+  };
+
   const signIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) return toast.error(error.message);
+    applyRememberFlag();
     toast.success("Bentornato!");
     navigate({ to: "/" });
   };
@@ -48,10 +61,12 @@ function Login() {
     });
     setLoading(false);
     if (error) return toast.error(error.message);
+    applyRememberFlag();
     toast.success("Account creato! Controlla la tua email per confermare.");
   };
 
   const google = async () => {
+    applyRememberFlag();
     const r = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
     if (r.error) return toast.error("Login Google fallito");
     if (r.redirected) return;
@@ -76,11 +91,6 @@ function Login() {
             Follow-up automatici, chat WhatsApp intelligenti, recupero chiamate perse e
             prenotazioni gestite dall'AI. Tutto in un'unica dashboard.
           </p>
-          <div className="grid grid-cols-3 gap-4 mt-8">
-            <div><div className="text-2xl font-semibold">+34%</div><div className="text-xs opacity-70">Riacquisto</div></div>
-            <div><div className="text-2xl font-semibold">94%</div><div className="text-xs opacity-70">Risposta</div></div>
-            <div><div className="text-2xl font-semibold">€12k</div><div className="text-xs opacity-70">Recuperato/mese</div></div>
-          </div>
         </div>
       </div>
 
@@ -101,6 +111,15 @@ function Login() {
               <form onSubmit={signIn} className="space-y-3">
                 <div className="space-y-1.5"><Label>Email</Label><Input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} /></div>
                 <div className="space-y-1.5"><Label>Password</Label><Input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} /></div>
+                <div className="flex items-center justify-between pt-1">
+                  <label className="flex items-center gap-2 text-sm cursor-pointer">
+                    <Checkbox checked={remember} onCheckedChange={(v) => setRemember(v === true)} />
+                    Ricordami per 30 giorni
+                  </label>
+                  <Link to="/forgot-password" className="text-sm text-primary hover:underline">
+                    Password dimenticata?
+                  </Link>
+                </div>
                 <Button type="submit" className="w-full bg-gradient-primary" disabled={loading}>Accedi</Button>
               </form>
             </TabsContent>
