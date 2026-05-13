@@ -29,6 +29,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as OperatorsOperatorIdRouteImport } from './routes/operators.$operatorId'
 import { Route as ClientsClientIdRouteImport } from './routes/clients.$clientId'
 import { Route as ApiTagClientsRouteImport } from './routes/api/tag-clients'
+import { Route as ApiSofiaRouteImport } from './routes/api/sofia'
 import { Route as ApiReminderRespondRouteImport } from './routes/api/reminder-respond'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 
@@ -132,6 +133,11 @@ const ApiTagClientsRoute = ApiTagClientsRouteImport.update({
   path: '/api/tag-clients',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiSofiaRoute = ApiSofiaRouteImport.update({
+  id: '/api/sofia',
+  path: '/api/sofia',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiReminderRespondRoute = ApiReminderRespondRouteImport.update({
   id: '/api/reminder-respond',
   path: '/api/reminder-respond',
@@ -163,6 +169,7 @@ export interface FileRoutesByFullPath {
   '/upsell': typeof UpsellRoute
   '/api/chat': typeof ApiChatRoute
   '/api/reminder-respond': typeof ApiReminderRespondRoute
+  '/api/sofia': typeof ApiSofiaRoute
   '/api/tag-clients': typeof ApiTagClientsRoute
   '/clients/$clientId': typeof ClientsClientIdRoute
   '/operators/$operatorId': typeof OperatorsOperatorIdRoute
@@ -187,6 +194,7 @@ export interface FileRoutesByTo {
   '/upsell': typeof UpsellRoute
   '/api/chat': typeof ApiChatRoute
   '/api/reminder-respond': typeof ApiReminderRespondRoute
+  '/api/sofia': typeof ApiSofiaRoute
   '/api/tag-clients': typeof ApiTagClientsRoute
   '/clients/$clientId': typeof ClientsClientIdRoute
   '/operators/$operatorId': typeof OperatorsOperatorIdRoute
@@ -212,6 +220,7 @@ export interface FileRoutesById {
   '/upsell': typeof UpsellRoute
   '/api/chat': typeof ApiChatRoute
   '/api/reminder-respond': typeof ApiReminderRespondRoute
+  '/api/sofia': typeof ApiSofiaRoute
   '/api/tag-clients': typeof ApiTagClientsRoute
   '/clients/$clientId': typeof ClientsClientIdRoute
   '/operators/$operatorId': typeof OperatorsOperatorIdRoute
@@ -238,6 +247,7 @@ export interface FileRouteTypes {
     | '/upsell'
     | '/api/chat'
     | '/api/reminder-respond'
+    | '/api/sofia'
     | '/api/tag-clients'
     | '/clients/$clientId'
     | '/operators/$operatorId'
@@ -262,6 +272,7 @@ export interface FileRouteTypes {
     | '/upsell'
     | '/api/chat'
     | '/api/reminder-respond'
+    | '/api/sofia'
     | '/api/tag-clients'
     | '/clients/$clientId'
     | '/operators/$operatorId'
@@ -286,6 +297,7 @@ export interface FileRouteTypes {
     | '/upsell'
     | '/api/chat'
     | '/api/reminder-respond'
+    | '/api/sofia'
     | '/api/tag-clients'
     | '/clients/$clientId'
     | '/operators/$operatorId'
@@ -311,6 +323,7 @@ export interface RootRouteChildren {
   UpsellRoute: typeof UpsellRoute
   ApiChatRoute: typeof ApiChatRoute
   ApiReminderRespondRoute: typeof ApiReminderRespondRoute
+  ApiSofiaRoute: typeof ApiSofiaRoute
   ApiTagClientsRoute: typeof ApiTagClientsRoute
 }
 
@@ -456,6 +469,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiTagClientsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/sofia': {
+      id: '/api/sofia'
+      path: '/api/sofia'
+      fullPath: '/api/sofia'
+      preLoaderRoute: typeof ApiSofiaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/reminder-respond': {
       id: '/api/reminder-respond'
       path: '/api/reminder-respond'
@@ -516,8 +536,19 @@ const rootRouteChildren: RootRouteChildren = {
   UpsellRoute: UpsellRoute,
   ApiChatRoute: ApiChatRoute,
   ApiReminderRespondRoute: ApiReminderRespondRoute,
+  ApiSofiaRoute: ApiSofiaRoute,
   ApiTagClientsRoute: ApiTagClientsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
