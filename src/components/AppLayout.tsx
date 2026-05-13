@@ -2,7 +2,11 @@ import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { AuthGate } from "@/components/AuthGate";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/useAuth";
-import { LogOut } from "lucide-react";
+import { LogOut, Settings as SettingsIcon } from "lucide-react";
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
+  DropdownMenuLabel, DropdownMenuItem, DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import {
   LayoutDashboard,
   Users,
@@ -125,21 +129,39 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             <Bell className="size-4" />
             <span className="absolute top-2 right-2 size-2 rounded-full bg-primary" />
           </button>
-          <button
-            onClick={async () => {
-              await supabase.auth.signOut();
-              navigate({ to: "/login" });
-            }}
-            className="size-9 rounded-md hover:bg-muted flex items-center justify-center transition-colors text-muted-foreground"
-            title="Esci"
-          >
-            <LogOut className="size-4" />
-          </button>
-          <Avatar className="size-9">
-            <AvatarFallback className="bg-gradient-primary text-primary-foreground text-xs font-medium">
-              {initials || "DR"}
-            </AvatarFallback>
-          </Avatar>
+          <DropdownMenu>
+            <DropdownMenuTrigger className="outline-none rounded-full focus-visible:ring-2 focus-visible:ring-ring">
+              <Avatar className="size-9 cursor-pointer">
+                <AvatarFallback className="bg-gradient-primary text-primary-foreground text-xs font-medium">
+                  {initials || "DR"}
+                </AvatarFallback>
+              </Avatar>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-60">
+              <DropdownMenuLabel className="flex items-center gap-3 py-2">
+                <Avatar className="size-9">
+                  <AvatarFallback className="bg-gradient-primary text-primary-foreground text-xs font-medium">{initials || "DR"}</AvatarFallback>
+                </Avatar>
+                <div className="min-w-0">
+                  <div className="text-sm font-medium truncate">{user?.user_metadata?.full_name || user?.email}</div>
+                  <div className="text-[11px] text-muted-foreground">
+                    {isSuperAdmin ? "Super Admin" : isAuthorizedAdmin ? "Admin Autorizzato" : "Account Studio"}
+                  </div>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => navigate({ to: "/account" })}>
+                <SettingsIcon className="size-4 mr-2" /> Impostazioni account
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive"
+                onClick={async () => { await supabase.auth.signOut(); navigate({ to: "/login" }); }}
+              >
+                <LogOut className="size-4 mr-2" /> Disconnetti
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </header>
         <ImpersonationBar />
         <main className="flex-1 p-4 md:p-8">{children}</main>
