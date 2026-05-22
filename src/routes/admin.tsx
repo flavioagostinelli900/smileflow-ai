@@ -337,6 +337,8 @@ function AdminPanel() {
                     <TableHead>Email</TableHead>
                     <TableHead>Telefono</TableHead>
                     <TableHead>Piano</TableHead>
+                    <TableHead>Fascia msg</TableHead>
+                    <TableHead>Prezzo</TableHead>
                     <TableHead>Scadenza</TableHead>
                     <TableHead>
                       <span className="inline-flex items-center gap-1">
