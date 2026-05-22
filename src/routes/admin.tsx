@@ -18,8 +18,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { usePermissions, setImpersonatedStudioId, type AppRole } from "@/lib/usePermissions";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Eye, Pause, Play, Plus, Pencil, Trash2, Info, UserPlus } from "lucide-react";
+import { Eye, Pause, Play, Plus, Pencil, Trash2, Info, UserPlus, Copy, Mail, Check } from "lucide-react";
 import { AdminSupportTickets } from "@/components/AdminSupportTickets";
+import { useServerFn } from "@tanstack/react-start";
+import { createStudioAccount } from "@/lib/studios.functions";
+import { generateTempPassword } from "@/lib/password-utils";
+
 
 export const Route = createFileRoute("/admin")({
   component: AdminPanel,
