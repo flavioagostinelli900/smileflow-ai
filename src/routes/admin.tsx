@@ -23,6 +23,15 @@ import { AdminSupportTickets } from "@/components/AdminSupportTickets";
 import { useServerFn } from "@tanstack/react-start";
 import { createStudioAccount } from "@/lib/studios.functions";
 import { generateTempPassword } from "@/lib/password-utils";
+import {
+  PLAN_IDS as PLAN_OPTIONS,
+  PLAN_LABELS,
+  MESSAGE_TIERS,
+  SETUP_FEE,
+  planLabel,
+  priceForTier,
+  type PlanId,
+} from "@/lib/plans";
 
 
 export const Route = createFileRoute("/admin")({
@@ -55,12 +64,6 @@ type StaffRow = {
   studio_ids: string[];
 };
 
-const PLAN_OPTIONS = ["silver", "gold", "platinum"] as const;
-const MESSAGE_TIERS: Record<typeof PLAN_OPTIONS[number], number[]> = {
-  silver: [1000, 1250, 1500],
-  gold: [1750, 2000, 2250],
-  platinum: [2750, 3000, 3250],
-};
 const CYCLE_OPTIONS = ["monthly", "annual"] as const;
 const STAFF_ROLE_OPTIONS: AppRole[] = ["super_admin", "authorized_admin", "support"];
 
