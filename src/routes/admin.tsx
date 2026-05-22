@@ -34,6 +34,7 @@ type Studio = {
   owner_name: string | null;
   plan: string;
   billing_cycle: string;
+  message_tier: number | null;
   subscription_started_at: string | null;
   subscription_expires_at: string | null;
   status: string;
@@ -50,9 +51,15 @@ type StaffRow = {
   studio_ids: string[];
 };
 
-const PLAN_OPTIONS = ["free", "pro", "business"] as const;
+const PLAN_OPTIONS = ["silver", "gold", "platinum"] as const;
+const MESSAGE_TIERS: Record<typeof PLAN_OPTIONS[number], number[]> = {
+  silver: [1000, 1250, 1500],
+  gold: [1750, 2000, 2250],
+  platinum: [2750, 3000, 3250],
+};
 const CYCLE_OPTIONS = ["monthly", "annual"] as const;
 const STAFF_ROLE_OPTIONS: AppRole[] = ["super_admin", "authorized_admin", "support"];
+
 
 function renewalBadge(expires: string | null) {
   if (!expires) return <Badge variant="outline">—</Badge>;
@@ -135,7 +142,9 @@ function AdminPanel() {
   // ---- Studio dialogs ----
   const emptyStudio = {
     name: "", email: "", phone: "", owner_name: "",
-    plan: "free", billing_cycle: "monthly",
+    plan: "silver" as typeof PLAN_OPTIONS[number],
+    billing_cycle: "monthly",
+    message_tier: MESSAGE_TIERS.silver[0],
     subscription_started_at: new Date().toISOString().slice(0, 10),
     status: "active",
   };
@@ -146,9 +155,12 @@ function AdminPanel() {
   const openCreate = () => { setEditingId(null); setStudioForm(emptyStudio); setStudioOpen(true); };
   const openEdit = (s: Studio) => {
     setEditingId(s.id);
+    const plan = (PLAN_OPTIONS as readonly string[]).includes(s.plan) ? (s.plan as typeof PLAN_OPTIONS[number]) : "silver";
     setStudioForm({
       name: s.name, email: s.email ?? "", phone: s.phone ?? "", owner_name: s.owner_name ?? "",
-      plan: s.plan, billing_cycle: s.billing_cycle ?? "monthly",
+      plan,
+      billing_cycle: s.billing_cycle ?? "monthly",
+      message_tier: s.message_tier ?? MESSAGE_TIERS[plan][0],
       subscription_started_at: s.subscription_started_at ?? new Date().toISOString().slice(0, 10),
       status: s.status,
     });
@@ -164,6 +176,7 @@ function AdminPanel() {
       owner_name: studioForm.owner_name || null,
       plan: studioForm.plan,
       billing_cycle: studioForm.billing_cycle,
+      message_tier: studioForm.message_tier,
       subscription_started_at: studioForm.subscription_started_at || null,
       status: studioForm.status,
     };
@@ -175,6 +188,7 @@ function AdminPanel() {
     setStudioOpen(false);
     qc.invalidateQueries({ queryKey: ["admin-studios"] });
   };
+
 
   const toggleStatus = async (s: Studio) => {
     const next = s.status === "active" ? "suspended" : "active";
@@ -443,30 +457,41 @@ function AdminPanel() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Piano</Label>
-                <select className="w-full h-10 border rounded-md px-2 bg-background" value={studioForm.plan} onChange={(e) => setStudioForm({ ...studioForm, plan: e.target.value })}>
-                  {PLAN_OPTIONS.map((p) => <option key={p} value={p} className="capitalize">{p}</option>)}
+                <select className="w-full h-10 border rounded-md px-2 bg-background capitalize" value={studioForm.plan} onChange={(e) => {
+                  const plan = e.target.value as typeof PLAN_OPTIONS[number];
+                  setStudioForm({ ...studioForm, plan, message_tier: MESSAGE_TIERS[plan][0] });
+                }}>
+                  {PLAN_OPTIONS.map((p) => <option key={p} value={p} className="capitalize">{p.charAt(0).toUpperCase() + p.slice(1)}</option>)}
                 </select>
               </div>
+              <div>
+                <Label>Fascia messaggi / mese</Label>
+                <select className="w-full h-10 border rounded-md px-2 bg-background" value={studioForm.message_tier ?? ""} onChange={(e) => setStudioForm({ ...studioForm, message_tier: Number(e.target.value) })}>
+                  {MESSAGE_TIERS[studioForm.plan].map((t) => <option key={t} value={t}>{t.toLocaleString("it-IT")} messaggi</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Tipo abbonamento</Label>
                 <select className="w-full h-10 border rounded-md px-2 bg-background" value={studioForm.billing_cycle} onChange={(e) => setStudioForm({ ...studioForm, billing_cycle: e.target.value })}>
                   {CYCLE_OPTIONS.map((c) => <option key={c} value={c}>{c === "annual" ? "Annuale" : "Mensile"}</option>)}
                 </select>
               </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Data inizio abbonamento</Label>
                 <Input type="date" value={studioForm.subscription_started_at} onChange={(e) => setStudioForm({ ...studioForm, subscription_started_at: e.target.value })} />
               </div>
-              <div>
-                <Label>Stato</Label>
-                <select className="w-full h-10 border rounded-md px-2 bg-background" value={studioForm.status} onChange={(e) => setStudioForm({ ...studioForm, status: e.target.value })}>
-                  <option value="active">Attivo</option>
-                  <option value="suspended">Sospeso</option>
-                </select>
-              </div>
             </div>
+
+            <div>
+              <Label>Stato</Label>
+              <select className="w-full h-10 border rounded-md px-2 bg-background" value={studioForm.status} onChange={(e) => setStudioForm({ ...studioForm, status: e.target.value })}>
+                <option value="active">Attivo</option>
+                <option value="suspended">Sospeso</option>
+              </select>
+            </div>
+
             <p className="text-xs text-muted-foreground">La data di scadenza viene calcolata automaticamente: +30 giorni se mensile, +365 giorni se annuale.</p>
           </div>
           <DialogFooter><Button onClick={saveStudio}>{editingId ? "Salva modifiche" : "Crea studio"}</Button></DialogFooter>
