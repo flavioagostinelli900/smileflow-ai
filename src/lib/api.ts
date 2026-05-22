@@ -110,6 +110,19 @@ export type Reminder = {
 
 export type OpeningHour = { day: string; open: string; close: string; active: boolean };
 export type VisitType = { name: string; minutes: number; ai_booking: boolean };
+export type FollowupConfig = {
+  discount_enabled: boolean;
+  discount_percent: number;
+  discount_validity_days: number;
+  visit_type_scope: "all" | "hygiene" | "checkup" | "custom";
+  custom_visit_types?: string[];
+};
+export const DEFAULT_FOLLOWUP_CONFIG: FollowupConfig = {
+  discount_enabled: false,
+  discount_percent: 15,
+  discount_validity_days: 7,
+  visit_type_scope: "all",
+};
 export type StudioSettings = {
   id: string;
   name: string;
@@ -121,7 +134,9 @@ export type StudioSettings = {
   opening_hours: OpeningHour[];
   visit_types: VisitType[];
   message_templates: Record<string, string>;
+  followup_config: FollowupConfig;
 };
+
 
 export type Reward = {
   id: string;
