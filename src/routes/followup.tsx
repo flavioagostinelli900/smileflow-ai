@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { usePermissions } from "@/lib/usePermissions";
 import { ReadOnlyBanner } from "@/components/ReadOnlyBanner";
+import { FollowupBalancer } from "@/components/FollowupBalancer";
 
 export const Route = createFileRoute("/followup")({
   component: FollowUp,
