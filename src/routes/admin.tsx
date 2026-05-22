@@ -83,6 +83,9 @@ function AdminPanel() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const canAccess = isSuperAdmin || isAuthorizedAdmin;
+  const createAccount = useServerFn(createStudioAccount);
+  const [credentials, setCredentials] = useState<null | { studio_name: string; first_name: string; email: string; password: string }>(null);
+
 
   useEffect(() => {
     if (!loading && !canAccess) navigate({ to: "/" });
