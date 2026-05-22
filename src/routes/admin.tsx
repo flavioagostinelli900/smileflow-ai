@@ -511,7 +511,7 @@ function AdminPanel() {
                   const plan = e.target.value as typeof PLAN_OPTIONS[number];
                   setStudioForm({ ...studioForm, plan, message_tier: MESSAGE_TIERS[plan][0] });
                 }}>
-                  {PLAN_OPTIONS.map((p) => <option key={p} value={p}>{PLAN_LABELS[p]} — da €{Math.min(...Object.values({ silver:{1000:199,1250:229,1500:259}, gold:{1750:299,2000:329,2250:359}, platinum:{2750:429,3000:459,3250:499} }[p]))}/mese</option>)}
+                  {PLAN_OPTIONS.map((p) => <option key={p} value={p}>{PLAN_LABELS[p]}</option>)}
                 </select>
               </div>
               <div>
