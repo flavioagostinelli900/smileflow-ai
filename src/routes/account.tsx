@@ -533,11 +533,11 @@ function ManagePaymentDialog() {
   );
 }
 
-function UpgradeDialog() {
-  const plans = [
-    { name: "Piano Base", price: 19, current: false, popular: false, features: ["500 messaggi/mese", "2 operatori", "Supporto standard"], action: "Passa a Base" },
-    { name: "Piano Pro", price: 49, current: true, popular: true, features: ["1.000 messaggi/mese", "5 operatori", "Supporto prioritario", "Workflow avanzati"], action: "Piano attuale" },
-    { name: "Piano Business", price: 119, current: false, popular: false, features: ["Messaggi illimitati", "Operatori illimitati", "Supporto dedicato", "Workflow avanzati", "Reportistica avanzata"], action: "Passa a Business" },
+function UpgradeDialog({ currentPlan }: { currentPlan: PlanId }) {
+  const plans: { id: PlanId; opsRange: string; popular: boolean }[] = [
+    { id: "silver", opsRange: "1-2 operatori", popular: false },
+    { id: "gold", opsRange: "3-4 operatori", popular: true },
+    { id: "platinum", opsRange: "5-6 operatori", popular: false },
   ];
   return (
     <Dialog>
@@ -545,33 +545,49 @@ function UpgradeDialog() {
       <DialogContent className="max-w-4xl">
         <DialogHeader>
           <DialogTitle>Scegli il tuo piano</DialogTitle>
-          <DialogDescription>Passa a un piano superiore per sbloccare più funzionalità e messaggi</DialogDescription>
+          <DialogDescription>Tre piani Silver, Gold e Platinum con diverse fasce di messaggi e operatori</DialogDescription>
         </DialogHeader>
         <div className="grid md:grid-cols-3 gap-4 py-2">
-          {plans.map((p) => (
-            <Card key={p.name} className={`p-5 relative ${p.popular ? "border-primary shadow-elegant" : ""}`}>
-              {p.popular && <Badge className="absolute -top-2 right-4 bg-primary">Più popolare</Badge>}
-              <div className="text-lg font-semibold">{p.name}</div>
-              <div className="text-3xl font-bold mt-1">€{p.price}<span className="text-sm font-normal text-muted-foreground">/mese</span></div>
-              <ul className="space-y-1.5 my-4 text-sm">
-                {p.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2"><Check className="size-4 text-primary mt-0.5 shrink-0" /><span>{f}</span></li>
-                ))}
-              </ul>
-              <Button className="w-full" disabled={p.current} variant={p.popular && !p.current ? "default" : "outline"}
-                onClick={() => toast.success(`${p.action}`)}>
-                {p.current ? "Piano attuale" : p.action}
-              </Button>
-            </Card>
-          ))}
+          {plans.map((p) => {
+            const tiers = MESSAGE_TIERS[p.id];
+            const minPrice = Math.min(...Object.values(MESSAGE_TIER_PRICES[p.id]));
+            const current = p.id === currentPlan;
+            const features = [
+              p.opsRange,
+              `Scegli tra ${tiers.map((t) => t.toLocaleString("it-IT")).join(" / ")} msg/mese`,
+              "Tutte le funzionalità incluse",
+              "Numero WhatsApp dedicato",
+            ];
+            return (
+              <Card key={p.id} className={`p-5 relative ${p.popular ? "border-primary shadow-elegant" : ""}`}>
+                {p.popular && <Badge className="absolute -top-2 right-4 bg-primary">Più popolare</Badge>}
+                <div className="text-lg font-semibold">{PLAN_LABELS[p.id]}</div>
+                <div className="text-3xl font-bold mt-1">da €{minPrice}<span className="text-sm font-normal text-muted-foreground">/mese</span></div>
+                <ul className="space-y-1.5 my-4 text-sm">
+                  {features.map((f) => (
+                    <li key={f} className="flex items-start gap-2"><Check className="size-4 text-primary mt-0.5 shrink-0" /><span>{f}</span></li>
+                  ))}
+                </ul>
+                <Button
+                  className="w-full"
+                  disabled={current}
+                  variant={p.popular && !current ? "default" : "outline"}
+                  onClick={() => toast.info("Contatta il supporto DentAI per cambiare piano")}
+                >
+                  {current ? "Piano attuale" : `Passa a ${PLAN_LABELS[p.id]}`}
+                </Button>
+              </Card>
+            );
+          })}
         </div>
         <p className="text-xs text-muted-foreground">
-          Il cambio piano è immediato. La differenza di prezzo verrà calcolata proporzionalmente ai giorni rimanenti del periodo in corso.
+          Il cambio piano viene gestito dal team DentAI. Contattaci tramite il supporto per procedere.
         </p>
       </DialogContent>
     </Dialog>
   );
 }
+
 
 function InvoicesDialog() {
   const invoices = [
