@@ -457,17 +457,33 @@ function AdminPanel() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Piano</Label>
-                <select className="w-full h-10 border rounded-md px-2 bg-background" value={studioForm.plan} onChange={(e) => setStudioForm({ ...studioForm, plan: e.target.value })}>
-                  {PLAN_OPTIONS.map((p) => <option key={p} value={p} className="capitalize">{p}</option>)}
+                <select className="w-full h-10 border rounded-md px-2 bg-background capitalize" value={studioForm.plan} onChange={(e) => {
+                  const plan = e.target.value as typeof PLAN_OPTIONS[number];
+                  setStudioForm({ ...studioForm, plan, message_tier: MESSAGE_TIERS[plan][0] });
+                }}>
+                  {PLAN_OPTIONS.map((p) => <option key={p} value={p} className="capitalize">{p.charAt(0).toUpperCase() + p.slice(1)}</option>)}
                 </select>
               </div>
+              <div>
+                <Label>Fascia messaggi / mese</Label>
+                <select className="w-full h-10 border rounded-md px-2 bg-background" value={studioForm.message_tier ?? ""} onChange={(e) => setStudioForm({ ...studioForm, message_tier: Number(e.target.value) })}>
+                  {MESSAGE_TIERS[studioForm.plan].map((t) => <option key={t} value={t}>{t.toLocaleString("it-IT")} messaggi</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Tipo abbonamento</Label>
                 <select className="w-full h-10 border rounded-md px-2 bg-background" value={studioForm.billing_cycle} onChange={(e) => setStudioForm({ ...studioForm, billing_cycle: e.target.value })}>
                   {CYCLE_OPTIONS.map((c) => <option key={c} value={c}>{c === "annual" ? "Annuale" : "Mensile"}</option>)}
                 </select>
               </div>
+              <div>
+                <Label>Data inizio abbonamento</Label>
+                <Input type="date" value={studioForm.subscription_started_at} onChange={(e) => setStudioForm({ ...studioForm, subscription_started_at: e.target.value })} />
+              </div>
             </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Data inizio abbonamento</Label>
