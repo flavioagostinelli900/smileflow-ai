@@ -583,6 +583,7 @@ export type Database = {
       studio_settings: {
         Row: {
           address: string | null
+          followup_config: Json
           id: string
           message_templates: Json
           name: string
@@ -596,6 +597,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          followup_config?: Json
           id?: string
           message_templates?: Json
           name?: string
@@ -609,6 +611,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          followup_config?: Json
           id?: string
           message_templates?: Json
           name?: string
