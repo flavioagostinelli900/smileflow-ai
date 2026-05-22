@@ -168,15 +168,24 @@ function SecuritySection() {
   const [pw, setPw] = useState("");
   const [pw2, setPw2] = useState("");
   const strength = useMemo(() => passwordStrength(pw), [pw]);
+  const allOk = passwordMeetsRules(pw);
+  const matches = pw.length > 0 && pw === pw2;
+  const canSubmit = allOk && matches;
   const [twoFA, setTwoFA] = useState(false);
   const [showQR, setShowQR] = useState(false);
 
   const updatePw = async () => {
-    if (pw !== pw2) return toast.error("Le password non coincidono");
-    if (pw.length < 8) return toast.error("La password deve avere almeno 8 caratteri");
-    const { error } = await supabase.auth.updateUser({ password: pw });
+    if (!canSubmit) return;
+    const { error } = await supabase.auth.updateUser({
+      password: pw,
+      data: { requires_password_change: false },
+    });
     if (error) toast.error(error.message);
-    else { toast.success("Password aggiornata"); setCur(""); setPw(""); setPw2(""); }
+    else {
+      toast.success("Password aggiornata");
+      setCur(""); setPw(""); setPw2("");
+      if (typeof window !== "undefined") sessionStorage.setItem("dentai_pw_banner_dismissed", "1");
+    }
   };
 
   const sessions = [
@@ -210,8 +219,26 @@ function SecuritySection() {
             </div>
           </div>
         )}
-        <Button onClick={updatePw} className="bg-gradient-primary">Aggiorna password</Button>
+        <ul className="space-y-1 text-sm">
+          {PASSWORD_RULES.map((r) => {
+            const ok = r.test(pw);
+            return (
+              <li key={r.id} className="flex items-center gap-2">
+                {ok ? <Check className="size-3.5 text-green-600" /> : <XIcon className="size-3.5 text-destructive" />}
+                <span className={ok ? "text-foreground" : "text-muted-foreground"}>{r.label}</span>
+              </li>
+            );
+          })}
+          {pw2.length > 0 && (
+            <li className="flex items-center gap-2">
+              {matches ? <Check className="size-3.5 text-green-600" /> : <XIcon className="size-3.5 text-destructive" />}
+              <span className={matches ? "text-foreground" : "text-muted-foreground"}>Le password coincidono</span>
+            </li>
+          )}
+        </ul>
+        <Button onClick={updatePw} disabled={!canSubmit} className="bg-gradient-primary">Salva nuova password</Button>
       </Card>
+
 
       <Card className="p-6 space-y-4">
         <div className="flex items-start justify-between gap-4">
