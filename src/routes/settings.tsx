@@ -78,6 +78,7 @@ function Settings() {
           <TabsTrigger value="visits"><Stethoscope className="size-3.5 mr-1.5" />Durate visite</TabsTrigger>
           <TabsTrigger value="whatsapp"><Phone className="size-3.5 mr-1.5" />WhatsApp</TabsTrigger>
           <TabsTrigger value="messages"><MessageSquare className="size-3.5 mr-1.5" />Messaggi</TabsTrigger>
+          <TabsTrigger value="followup"><Sparkles className="size-3.5 mr-1.5" />Follow-up</TabsTrigger>
         </TabsList>
         <fieldset disabled={ro} className={ro ? "opacity-90" : ""}>
 
