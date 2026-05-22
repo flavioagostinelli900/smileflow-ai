@@ -180,6 +180,94 @@ function Settings() {
           ))}
           {canManage && <Button onClick={() => save({ message_templates: draft.message_templates })} className="bg-gradient-primary"><Save className="size-4 mr-1.5" />Salva messaggi</Button>}
         </TabsContent>
+
+        <TabsContent value="followup">
+          <Card className="p-6 space-y-5">
+            <div>
+              <h3 className="font-semibold">Sconto pazienti non rispondenti</h3>
+              <p className="text-xs text-muted-foreground">Configura lo sconto inviato al terzo messaggio quando un paziente inattivo non risponde alle prime due email/WhatsApp.</p>
+            </div>
+
+            {(() => {
+              const cfg: FollowupConfig = { ...DEFAULT_FOLLOWUP_CONFIG, ...(draft.followup_config ?? {}) };
+              const setCfg = (patch: Partial<FollowupConfig>) =>
+                setDraft({ ...draft, followup_config: { ...cfg, ...patch } });
+              return (
+                <>
+                  <label className="flex items-center justify-between p-4 rounded-lg border bg-muted/30">
+                    <div>
+                      <div className="font-medium text-sm">Abilita sconto per non rispondenti</div>
+                      <p className="text-xs text-muted-foreground">Quando attivo, al 3° messaggio viene proposto uno sconto.</p>
+                    </div>
+                    <Switch checked={cfg.discount_enabled} onCheckedChange={(v) => setCfg({ discount_enabled: v })} />
+                  </label>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <Label>Percentuale sconto (%)</Label>
+                      <Input type="number" min={1} max={100} value={cfg.discount_percent}
+                        onChange={(e) => setCfg({ discount_percent: Number(e.target.value) })}
+                        disabled={!cfg.discount_enabled} />
+                    </div>
+                    <div>
+                      <Label>Validità sconto (giorni)</Label>
+                      <Input type="number" min={1} max={90} value={cfg.discount_validity_days}
+                        onChange={(e) => setCfg({ discount_validity_days: Number(e.target.value) })}
+                        disabled={!cfg.discount_enabled} />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label>Tipo visita</Label>
+                    <select
+                      className="w-full h-10 border rounded-md px-2 bg-background"
+                      value={cfg.visit_type_scope}
+                      onChange={(e) => setCfg({ visit_type_scope: e.target.value as FollowupConfig["visit_type_scope"] })}
+                      disabled={!cfg.discount_enabled}
+                    >
+                      <option value="all">Tutti</option>
+                      <option value="hygiene">Solo igiene</option>
+                      <option value="checkup">Solo controllo</option>
+                      <option value="custom">Personalizzato</option>
+                    </select>
+                  </div>
+
+                  {cfg.visit_type_scope === "custom" && (
+                    <div>
+                      <Label>Tipi visita inclusi (separati da virgola)</Label>
+                      <Input
+                        value={(cfg.custom_visit_types ?? []).join(", ")}
+                        onChange={(e) => setCfg({ custom_visit_types: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })}
+                        disabled={!cfg.discount_enabled}
+                        placeholder="Es. Sbiancamento, Ortodonzia"
+                      />
+                    </div>
+                  )}
+
+                  <Card className="p-4 bg-muted/40 text-xs text-muted-foreground">
+                    <div className="font-medium text-foreground mb-1">Anteprima messaggio (3° invio)</div>
+                    {cfg.discount_enabled ? (
+                      <>
+                        Ciao [Nome] 🙂<br />
+                        Per te abbiamo riservato uno sconto speciale del {cfg.discount_percent}% sulla prossima visita.<br />
+                        Valido fino al [data + {cfg.discount_validity_days} giorni].<br />
+                        Vuoi approfittarne?
+                      </>
+                    ) : (
+                      <>Ciao [Nome], capisco che potresti essere occupato. Siamo qui quando vuoi 🙂</>
+                    )}
+                  </Card>
+
+                  {canManage && (
+                    <Button onClick={() => save({ followup_config: cfg })} className="bg-gradient-primary">
+                      <Save className="size-4 mr-1.5" />Salva configurazione follow-up
+                    </Button>
+                  )}
+                </>
+              );
+            })()}
+          </Card>
+        </TabsContent>
         </fieldset>
       </Tabs>
     </AppLayout>
