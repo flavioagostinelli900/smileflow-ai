@@ -6,10 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Sparkles } from "lucide-react";
-import { lovable } from "@/integrations/lovable";
 
 export const Route = createFileRoute("/login")({
   component: Login,
@@ -20,7 +18,6 @@ function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
   const [remember, setRemember] = useState(true);
   const [loading, setLoading] = useState(false);
 
@@ -32,11 +29,8 @@ function Login() {
 
   const applyRememberFlag = () => {
     if (typeof window === "undefined") return;
-    if (remember) {
-      localStorage.setItem("dentai_remember", "1");
-    } else {
-      localStorage.removeItem("dentai_remember");
-    }
+    if (remember) localStorage.setItem("dentai_remember", "1");
+    else localStorage.removeItem("dentai_remember");
     sessionStorage.setItem("dentai_session_alive", "1");
   };
 
@@ -45,31 +39,13 @@ function Login() {
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
-    if (error) return toast.error(error.message);
+    if (error) {
+      return toast.error(
+        "Email o password non corretti. Verifica le tue credenziali e riprova o contatta il supporto DentAI.",
+      );
+    }
     applyRememberFlag();
     toast.success("Bentornato!");
-    navigate({ to: "/" });
-  };
-
-  const signUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { emailRedirectTo: window.location.origin, data: { full_name: name } },
-    });
-    setLoading(false);
-    if (error) return toast.error(error.message);
-    applyRememberFlag();
-    toast.success("Account creato! Controlla la tua email per confermare.");
-  };
-
-  const google = async () => {
-    applyRememberFlag();
-    const r = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
-    if (r.error) return toast.error("Login Google fallito");
-    if (r.redirected) return;
     navigate({ to: "/" });
   };
 
@@ -98,53 +74,47 @@ function Login() {
         <Card className="w-full max-w-md p-8">
           <div className="mb-6">
             <h1 className="text-2xl font-semibold">Accedi al tuo studio</h1>
-            <p className="text-sm text-muted-foreground">Gestisci pazienti, chat AI e prenotazioni.</p>
+            <p className="text-sm text-muted-foreground">
+              Gestisci pazienti, chat AI e prenotazioni.
+            </p>
           </div>
 
-          <Tabs defaultValue="signin">
-            <TabsList className="grid grid-cols-2 mb-6">
-              <TabsTrigger value="signin">Accedi</TabsTrigger>
-              <TabsTrigger value="signup">Registrati</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="signin">
-              <form onSubmit={signIn} className="space-y-3">
-                <div className="space-y-1.5"><Label>Email</Label><Input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} /></div>
-                <div className="space-y-1.5"><Label>Password</Label><Input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} /></div>
-                <div className="flex items-center justify-between pt-1">
-                  <label className="flex items-center gap-2 text-sm cursor-pointer">
-                    <Checkbox checked={remember} onCheckedChange={(v) => setRemember(v === true)} />
-                    Ricordami per 30 giorni
-                  </label>
-                  <Link to="/forgot-password" className="text-sm text-primary hover:underline">
-                    Password dimenticata?
-                  </Link>
-                </div>
-                <Button type="submit" className="w-full bg-gradient-primary" disabled={loading}>Accedi</Button>
-              </form>
-            </TabsContent>
-
-            <TabsContent value="signup">
-              <form onSubmit={signUp} className="space-y-3">
-                <div className="space-y-1.5"><Label>Nome completo</Label><Input required value={name} onChange={(e) => setName(e.target.value)} /></div>
-                <div className="space-y-1.5"><Label>Email</Label><Input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} /></div>
-                <div className="space-y-1.5"><Label>Password</Label><Input type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} /></div>
-                <Button type="submit" className="w-full bg-gradient-primary" disabled={loading}>Crea account</Button>
-              </form>
-            </TabsContent>
-          </Tabs>
-
-          <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">
-            <div className="flex-1 h-px bg-border" />oppure<div className="flex-1 h-px bg-border" />
-          </div>
-
-          <Button variant="outline" className="w-full" onClick={google}>
-            <svg className="size-4 mr-2" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.1c-.22-.66-.35-1.36-.35-2.1s.13-1.44.35-2.1V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.83z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.83C6.71 7.31 9.14 5.38 12 5.38z"/></svg>
-            Continua con Google
-          </Button>
+          <form onSubmit={signIn} className="space-y-3">
+            <div className="space-y-1.5">
+              <Label>Email</Label>
+              <Input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Password</Label>
+              <Input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+            <div className="flex items-center justify-between pt-1">
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox checked={remember} onCheckedChange={(v) => setRemember(v === true)} />
+                Ricordami per 30 giorni
+              </label>
+              <Link to="/forgot-password" className="text-sm text-primary hover:underline">
+                Password dimenticata?
+              </Link>
+            </div>
+            <Button type="submit" className="w-full bg-gradient-primary" disabled={loading}>
+              Accedi
+            </Button>
+          </form>
 
           <p className="text-[11px] text-muted-foreground text-center mt-6">
-            <Link to="/" className="hover:underline">← Torna alla home</Link>
+            Gli account vengono creati esclusivamente dal team DentAI. Per richiedere un accesso
+            contatta il supporto.
           </p>
         </Card>
       </div>
