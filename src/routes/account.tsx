@@ -19,8 +19,10 @@ import { useState, useMemo, useEffect } from "react";
 import { toast } from "sonner";
 import {
   User as UserIcon, Shield, Bell, CreditCard, Camera, Smartphone, LogOut as LogOutIcon,
-  Download, AlertTriangle, Check, Sparkles,
+  Download, AlertTriangle, Check, Sparkles, X as XIcon,
 } from "lucide-react";
+import { PASSWORD_RULES, passwordMeetsRules } from "@/lib/password-utils";
+
 
 export const Route = createFileRoute("/account")({
   component: AccountPage,
