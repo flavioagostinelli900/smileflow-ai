@@ -116,8 +116,10 @@ function Dashboard() {
 
   return (
     <AppLayout>
+      <PasswordChangeBanner />
       {/* Hero strip */}
       <div className="rounded-2xl bg-gradient-hero text-primary-foreground p-6 md:p-8 mb-4 shadow-elevated relative overflow-hidden">
+
         <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_20%_20%,white,transparent_40%)]" />
         <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="min-w-0">
