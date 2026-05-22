@@ -10,9 +10,11 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UpsellRouteImport } from './routes/upsell'
+import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RemindersRouteImport } from './routes/reminders'
+import { Route as RegisterRouteImport } from './routes/register'
 import { Route as ReceptionRouteImport } from './routes/reception'
 import { Route as OperatorsRouteImport } from './routes/operators'
 import { Route as MissedCallsRouteImport } from './routes/missed-calls'
@@ -38,6 +40,11 @@ const UpsellRoute = UpsellRouteImport.update({
   path: '/upsell',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -51,6 +58,11 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
 const RemindersRoute = RemindersRouteImport.update({
   id: '/reminders',
   path: '/reminders',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RegisterRoute = RegisterRouteImport.update({
+  id: '/register',
+  path: '/register',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReceptionRoute = ReceptionRouteImport.update({
@@ -163,9 +175,11 @@ export interface FileRoutesByFullPath {
   '/missed-calls': typeof MissedCallsRoute
   '/operators': typeof OperatorsRouteWithChildren
   '/reception': typeof ReceptionRoute
+  '/register': typeof RegisterRoute
   '/reminders': typeof RemindersRoute
   '/reset-password': typeof ResetPasswordRoute
   '/settings': typeof SettingsRoute
+  '/signup': typeof SignupRoute
   '/upsell': typeof UpsellRoute
   '/api/chat': typeof ApiChatRoute
   '/api/reminder-respond': typeof ApiReminderRespondRoute
@@ -188,9 +202,11 @@ export interface FileRoutesByTo {
   '/missed-calls': typeof MissedCallsRoute
   '/operators': typeof OperatorsRouteWithChildren
   '/reception': typeof ReceptionRoute
+  '/register': typeof RegisterRoute
   '/reminders': typeof RemindersRoute
   '/reset-password': typeof ResetPasswordRoute
   '/settings': typeof SettingsRoute
+  '/signup': typeof SignupRoute
   '/upsell': typeof UpsellRoute
   '/api/chat': typeof ApiChatRoute
   '/api/reminder-respond': typeof ApiReminderRespondRoute
@@ -214,9 +230,11 @@ export interface FileRoutesById {
   '/missed-calls': typeof MissedCallsRoute
   '/operators': typeof OperatorsRouteWithChildren
   '/reception': typeof ReceptionRoute
+  '/register': typeof RegisterRoute
   '/reminders': typeof RemindersRoute
   '/reset-password': typeof ResetPasswordRoute
   '/settings': typeof SettingsRoute
+  '/signup': typeof SignupRoute
   '/upsell': typeof UpsellRoute
   '/api/chat': typeof ApiChatRoute
   '/api/reminder-respond': typeof ApiReminderRespondRoute
@@ -241,9 +259,11 @@ export interface FileRouteTypes {
     | '/missed-calls'
     | '/operators'
     | '/reception'
+    | '/register'
     | '/reminders'
     | '/reset-password'
     | '/settings'
+    | '/signup'
     | '/upsell'
     | '/api/chat'
     | '/api/reminder-respond'
@@ -266,9 +286,11 @@ export interface FileRouteTypes {
     | '/missed-calls'
     | '/operators'
     | '/reception'
+    | '/register'
     | '/reminders'
     | '/reset-password'
     | '/settings'
+    | '/signup'
     | '/upsell'
     | '/api/chat'
     | '/api/reminder-respond'
@@ -291,9 +313,11 @@ export interface FileRouteTypes {
     | '/missed-calls'
     | '/operators'
     | '/reception'
+    | '/register'
     | '/reminders'
     | '/reset-password'
     | '/settings'
+    | '/signup'
     | '/upsell'
     | '/api/chat'
     | '/api/reminder-respond'
@@ -317,9 +341,11 @@ export interface RootRouteChildren {
   MissedCallsRoute: typeof MissedCallsRoute
   OperatorsRoute: typeof OperatorsRouteWithChildren
   ReceptionRoute: typeof ReceptionRoute
+  RegisterRoute: typeof RegisterRoute
   RemindersRoute: typeof RemindersRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SettingsRoute: typeof SettingsRoute
+  SignupRoute: typeof SignupRoute
   UpsellRoute: typeof UpsellRoute
   ApiChatRoute: typeof ApiChatRoute
   ApiReminderRespondRoute: typeof ApiReminderRespondRoute
@@ -334,6 +360,13 @@ declare module '@tanstack/react-router' {
       path: '/upsell'
       fullPath: '/upsell'
       preLoaderRoute: typeof UpsellRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -355,6 +388,13 @@ declare module '@tanstack/react-router' {
       path: '/reminders'
       fullPath: '/reminders'
       preLoaderRoute: typeof RemindersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/register': {
+      id: '/register'
+      path: '/register'
+      fullPath: '/register'
+      preLoaderRoute: typeof RegisterRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reception': {
@@ -530,9 +570,11 @@ const rootRouteChildren: RootRouteChildren = {
   MissedCallsRoute: MissedCallsRoute,
   OperatorsRoute: OperatorsRouteWithChildren,
   ReceptionRoute: ReceptionRoute,
+  RegisterRoute: RegisterRoute,
   RemindersRoute: RemindersRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SettingsRoute: SettingsRoute,
+  SignupRoute: SignupRoute,
   UpsellRoute: UpsellRoute,
   ApiChatRoute: ApiChatRoute,
   ApiReminderRespondRoute: ApiReminderRespondRoute,
@@ -542,13 +584,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
