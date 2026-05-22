@@ -304,3 +304,35 @@ function Dashboard() {
     </AppLayout>
   );
 }
+
+function PasswordChangeBanner() {
+  const { user } = useAuth();
+  const [dismissed, setDismissed] = useState(false);
+  const needs = user?.user_metadata?.requires_password_change === true;
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (sessionStorage.getItem("dentai_pw_banner_dismissed") === "1") setDismissed(true);
+  }, []);
+  if (!needs || dismissed) return null;
+  const close = () => {
+    sessionStorage.setItem("dentai_pw_banner_dismissed", "1");
+    setDismissed(true);
+  };
+  return (
+    <div className="mb-4 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 flex items-start gap-3">
+      <KeyRound className="size-4 text-primary mt-0.5 shrink-0" />
+      <div className="flex-1 text-sm">
+        <span className="text-foreground">
+          Per la tua sicurezza ti consigliamo di cambiare la password.{" "}
+        </span>
+        <Link to="/account" className="text-primary underline underline-offset-2 font-medium">
+          Vai su Impostazioni → Sicurezza
+        </Link>
+      </div>
+      <button onClick={close} className="text-muted-foreground hover:text-foreground" aria-label="Chiudi">
+        <X className="size-4" />
+      </button>
+    </div>
+  );
+}
+
