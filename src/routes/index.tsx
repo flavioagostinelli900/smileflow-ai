@@ -4,7 +4,10 @@ import { StatCard } from "@/components/StatCard";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar as CalendarIcon, UserCheck, PhoneIncoming, Send, MessagesSquare, Sparkles, Calendar } from "lucide-react";
+import { Calendar as CalendarIcon, UserCheck, PhoneIncoming, Send, MessagesSquare, Sparkles, Calendar, KeyRound, X } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { useAuth } from "@/lib/useAuth";
+
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarPicker } from "@/components/ui/calendar";
 import { useEffect, useMemo, useState } from "react";
@@ -113,8 +116,10 @@ function Dashboard() {
 
   return (
     <AppLayout>
+      <PasswordChangeBanner />
       {/* Hero strip */}
       <div className="rounded-2xl bg-gradient-hero text-primary-foreground p-6 md:p-8 mb-4 shadow-elevated relative overflow-hidden">
+
         <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_20%_20%,white,transparent_40%)]" />
         <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="min-w-0">
@@ -299,3 +304,35 @@ function Dashboard() {
     </AppLayout>
   );
 }
+
+function PasswordChangeBanner() {
+  const { user } = useAuth();
+  const [dismissed, setDismissed] = useState(false);
+  const needs = user?.user_metadata?.requires_password_change === true;
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (sessionStorage.getItem("dentai_pw_banner_dismissed") === "1") setDismissed(true);
+  }, []);
+  if (!needs || dismissed) return null;
+  const close = () => {
+    sessionStorage.setItem("dentai_pw_banner_dismissed", "1");
+    setDismissed(true);
+  };
+  return (
+    <div className="mb-4 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 flex items-start gap-3">
+      <KeyRound className="size-4 text-primary mt-0.5 shrink-0" />
+      <div className="flex-1 text-sm">
+        <span className="text-foreground">
+          Per la tua sicurezza ti consigliamo di cambiare la password.{" "}
+        </span>
+        <Link to="/account" className="text-primary underline underline-offset-2 font-medium">
+          Vai su Impostazioni → Sicurezza
+        </Link>
+      </div>
+      <button onClick={close} className="text-muted-foreground hover:text-foreground" aria-label="Chiudi">
+        <X className="size-4" />
+      </button>
+    </div>
+  );
+}
+

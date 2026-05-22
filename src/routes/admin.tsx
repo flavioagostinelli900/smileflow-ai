@@ -18,8 +18,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { usePermissions, setImpersonatedStudioId, type AppRole } from "@/lib/usePermissions";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Eye, Pause, Play, Plus, Pencil, Trash2, Info, UserPlus } from "lucide-react";
+import { Eye, Pause, Play, Plus, Pencil, Trash2, Info, UserPlus, Copy, Mail, Check } from "lucide-react";
 import { AdminSupportTickets } from "@/components/AdminSupportTickets";
+import { useServerFn } from "@tanstack/react-start";
+import { createStudioAccount } from "@/lib/studios.functions";
+import { generateTempPassword } from "@/lib/password-utils";
+
 
 export const Route = createFileRoute("/admin")({
   component: AdminPanel,
@@ -79,6 +83,9 @@ function AdminPanel() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const canAccess = isSuperAdmin || isAuthorizedAdmin;
+  const createAccount = useServerFn(createStudioAccount);
+  const [credentials, setCredentials] = useState<null | { studio_name: string; first_name: string; email: string; password: string }>(null);
+
 
   useEffect(() => {
     if (!loading && !canAccess) navigate({ to: "/" });
@@ -169,6 +176,7 @@ function AdminPanel() {
 
   const saveStudio = async () => {
     if (!studioForm.name) return toast.error("Inserisci il nome");
+    if (!editingId && !studioForm.email) return toast.error("Email obbligatoria per creare l'account");
     const payload = {
       name: studioForm.name,
       email: studioForm.email || null,
@@ -180,14 +188,44 @@ function AdminPanel() {
       subscription_started_at: studioForm.subscription_started_at || null,
       status: studioForm.status,
     };
-    const { error } = editingId
-      ? await supabase.from("studios").update(payload).eq("id", editingId)
-      : await supabase.from("studios").insert(payload);
-    if (error) return toast.error(error.message);
-    toast.success(editingId ? "Studio aggiornato" : "Studio creato");
+    if (editingId) {
+      const { error } = await supabase.from("studios").update(payload).eq("id", editingId);
+      if (error) return toast.error(error.message);
+      toast.success("Studio aggiornato");
+      setStudioOpen(false);
+      qc.invalidateQueries({ queryKey: ["admin-studios"] });
+      return;
+    }
+    // Create studio + auth account
+    const { data: inserted, error } = await supabase.from("studios").insert(payload).select("id").single();
+    if (error || !inserted) return toast.error(error?.message ?? "Errore creazione studio");
+    const tempPassword = generateTempPassword(12);
+    try {
+      await createAccount({
+        data: {
+          studio_id: inserted.id,
+          email: studioForm.email,
+          password: tempPassword,
+          first_name: studioForm.owner_name || studioForm.name,
+        },
+      });
+    } catch (e: any) {
+      toast.error(`Studio creato, ma errore nell'account: ${e.message}. Puoi riprovare dalla scheda studio.`);
+      setStudioOpen(false);
+      qc.invalidateQueries({ queryKey: ["admin-studios"] });
+      return;
+    }
     setStudioOpen(false);
     qc.invalidateQueries({ queryKey: ["admin-studios"] });
+    setCredentials({
+      studio_name: studioForm.name,
+      first_name: studioForm.owner_name || studioForm.name,
+      email: studioForm.email,
+      password: tempPassword,
+    });
   };
+
+
 
 
   const toggleStatus = async (s: Studio) => {
@@ -535,7 +573,78 @@ function AdminPanel() {
           <DialogFooter><Button onClick={saveStaff}>{editStaff ? "Salva" : "Aggiungi"}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ---------- CREDENZIALI APPENA CREATE ---------- */}
+      <CredentialsDialog data={credentials} onClose={() => setCredentials(null)} />
       </TooltipProvider>
     </AppLayout>
   );
 }
+
+function CredentialsDialog({
+  data,
+  onClose,
+}: {
+  data: null | { studio_name: string; first_name: string; email: string; password: string };
+  onClose: () => void;
+}) {
+  const [copied, setCopied] = useState<string | null>(null);
+  if (!data) return null;
+  const appUrl = typeof window !== "undefined" ? window.location.origin : "";
+  const emailBody =
+    `Ciao ${data.first_name},\n\n` +
+    `il tuo account DentAI è stato attivato.\n` +
+    `Accedi su ${appUrl} con:\n\n` +
+    `Email: ${data.email}\n` +
+    `Password temporanea: ${data.password}\n\n` +
+    `Ti consigliamo di cambiare la password al primo accesso.`;
+  const subject = "Il tuo account DentAI è pronto";
+  const copy = (label: string, value: string) => {
+    navigator.clipboard.writeText(value);
+    setCopied(label);
+    setTimeout(() => setCopied(null), 1500);
+  };
+  const sendEmail = () => {
+    const mailto = `mailto:${encodeURIComponent(data.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
+    window.location.href = mailto;
+    toast.success("Apertura client email…");
+  };
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Account creato</DialogTitle>
+        </DialogHeader>
+        <p className="text-sm text-muted-foreground">
+          Puoi inviare le credenziali allo studio quando sei pronto. Non è stata mandata nessuna email automatica.
+        </p>
+        <div className="space-y-2 mt-2">
+          <div className="rounded-md border p-3 space-y-2 bg-muted/30">
+            <div className="flex items-center justify-between text-sm">
+              <div><span className="text-muted-foreground">Studio:</span> <span className="font-medium">{data.studio_name}</span></div>
+            </div>
+            <div className="flex items-center justify-between gap-2 text-sm">
+              <div className="truncate"><span className="text-muted-foreground">Email:</span> <span className="font-mono">{data.email}</span></div>
+              <Button size="sm" variant="ghost" onClick={() => copy("email", data.email)}>
+                {copied === "email" ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+              </Button>
+            </div>
+            <div className="flex items-center justify-between gap-2 text-sm">
+              <div className="truncate"><span className="text-muted-foreground">Password:</span> <span className="font-mono">{data.password}</span></div>
+              <Button size="sm" variant="ghost" onClick={() => copy("pw", data.password)}>
+                {copied === "pw" ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+              </Button>
+            </div>
+          </div>
+        </div>
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={onClose}>Chiudi</Button>
+          <Button className="bg-gradient-primary" onClick={sendEmail}>
+            <Mail className="size-4 mr-1.5" /> Invia credenziali ora
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
