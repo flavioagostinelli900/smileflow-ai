@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { usePermissions } from "@/lib/usePermissions";
 import { ReadOnlyBanner } from "@/components/ReadOnlyBanner";
+import { FollowupBalancer } from "@/components/FollowupBalancer";
 
 export const Route = createFileRoute("/followup")({
   component: FollowUp,
@@ -80,15 +81,18 @@ function FollowUp() {
   return (
     <AppLayout>
       {!canManage && <ReadOnlyBanner className="mb-4" />}
-      <Tabs defaultValue="workflows" className="space-y-6">
+      <Tabs defaultValue="balancer" className="space-y-6">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <TabsList>
+            <TabsTrigger value="balancer"><Sparkles className="size-3.5 mr-1.5" />Bilanciamento</TabsTrigger>
             <TabsTrigger value="workflows">Workflow</TabsTrigger>
             <TabsTrigger value="blocks"><Database className="size-3.5 mr-1.5" />Blocchi DB</TabsTrigger>
             <TabsTrigger value="analytics">Conversioni</TabsTrigger>
           </TabsList>
           {canManage && <Button size="sm" className="bg-gradient-primary" onClick={createNew}><Plus className="size-4 mr-1.5" />Nuovo workflow</Button>}
         </div>
+
+        <TabsContent value="balancer"><FollowupBalancer /></TabsContent>
 
         <TabsContent value="workflows" className="space-y-4">
           <div className="grid md:grid-cols-3 gap-4">
