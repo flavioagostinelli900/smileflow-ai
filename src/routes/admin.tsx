@@ -142,7 +142,9 @@ function AdminPanel() {
   // ---- Studio dialogs ----
   const emptyStudio = {
     name: "", email: "", phone: "", owner_name: "",
-    plan: "free", billing_cycle: "monthly",
+    plan: "silver" as typeof PLAN_OPTIONS[number],
+    billing_cycle: "monthly",
+    message_tier: MESSAGE_TIERS.silver[0],
     subscription_started_at: new Date().toISOString().slice(0, 10),
     status: "active",
   };
@@ -153,9 +155,12 @@ function AdminPanel() {
   const openCreate = () => { setEditingId(null); setStudioForm(emptyStudio); setStudioOpen(true); };
   const openEdit = (s: Studio) => {
     setEditingId(s.id);
+    const plan = (PLAN_OPTIONS as readonly string[]).includes(s.plan) ? (s.plan as typeof PLAN_OPTIONS[number]) : "silver";
     setStudioForm({
       name: s.name, email: s.email ?? "", phone: s.phone ?? "", owner_name: s.owner_name ?? "",
-      plan: s.plan, billing_cycle: s.billing_cycle ?? "monthly",
+      plan,
+      billing_cycle: s.billing_cycle ?? "monthly",
+      message_tier: s.message_tier ?? MESSAGE_TIERS[plan][0],
       subscription_started_at: s.subscription_started_at ?? new Date().toISOString().slice(0, 10),
       status: s.status,
     });
@@ -171,6 +176,7 @@ function AdminPanel() {
       owner_name: studioForm.owner_name || null,
       plan: studioForm.plan,
       billing_cycle: studioForm.billing_cycle,
+      message_tier: studioForm.message_tier,
       subscription_started_at: studioForm.subscription_started_at || null,
       status: studioForm.status,
     };
@@ -182,6 +188,7 @@ function AdminPanel() {
     setStudioOpen(false);
     qc.invalidateQueries({ queryKey: ["admin-studios"] });
   };
+
 
   const toggleStatus = async (s: Studio) => {
     const next = s.status === "active" ? "suspended" : "active";
