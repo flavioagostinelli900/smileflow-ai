@@ -225,8 +225,7 @@ function AdminPanel() {
     });
   };
 
-    qc.invalidateQueries({ queryKey: ["admin-studios"] });
-  };
+
 
 
   const toggleStatus = async (s: Studio) => {
