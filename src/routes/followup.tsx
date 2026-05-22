@@ -81,7 +81,7 @@ function FollowUp() {
   return (
     <AppLayout>
       {!canManage && <ReadOnlyBanner className="mb-4" />}
-      <Tabs defaultValue="workflows" className="space-y-6">
+      <Tabs defaultValue="balancer" className="space-y-6">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <TabsList>
             <TabsTrigger value="balancer"><Sparkles className="size-3.5 mr-1.5" />Bilanciamento</TabsTrigger>
