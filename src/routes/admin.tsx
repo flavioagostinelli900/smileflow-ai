@@ -34,6 +34,7 @@ type Studio = {
   owner_name: string | null;
   plan: string;
   billing_cycle: string;
+  message_tier: number | null;
   subscription_started_at: string | null;
   subscription_expires_at: string | null;
   status: string;
@@ -50,9 +51,15 @@ type StaffRow = {
   studio_ids: string[];
 };
 
-const PLAN_OPTIONS = ["free", "pro", "business"] as const;
+const PLAN_OPTIONS = ["silver", "gold", "platinum"] as const;
+const MESSAGE_TIERS: Record<typeof PLAN_OPTIONS[number], number[]> = {
+  silver: [1000, 1250, 1500],
+  gold: [1750, 2000, 2250],
+  platinum: [2750, 3000, 3250],
+};
 const CYCLE_OPTIONS = ["monthly", "annual"] as const;
 const STAFF_ROLE_OPTIONS: AppRole[] = ["super_admin", "authorized_admin", "support"];
+
 
 function renewalBadge(expires: string | null) {
   if (!expires) return <Badge variant="outline">—</Badge>;
