@@ -23,6 +23,15 @@ import { AdminSupportTickets } from "@/components/AdminSupportTickets";
 import { useServerFn } from "@tanstack/react-start";
 import { createStudioAccount } from "@/lib/studios.functions";
 import { generateTempPassword } from "@/lib/password-utils";
+import {
+  PLAN_IDS as PLAN_OPTIONS,
+  PLAN_LABELS,
+  MESSAGE_TIERS,
+  SETUP_FEE,
+  planLabel,
+  priceForTier,
+  type PlanId,
+} from "@/lib/plans";
 
 
 export const Route = createFileRoute("/admin")({
@@ -55,12 +64,6 @@ type StaffRow = {
   studio_ids: string[];
 };
 
-const PLAN_OPTIONS = ["silver", "gold", "platinum"] as const;
-const MESSAGE_TIERS: Record<typeof PLAN_OPTIONS[number], number[]> = {
-  silver: [1000, 1250, 1500],
-  gold: [1750, 2000, 2250],
-  platinum: [2750, 3000, 3250],
-};
 const CYCLE_OPTIONS = ["monthly", "annual"] as const;
 const STAFF_ROLE_OPTIONS: AppRole[] = ["super_admin", "authorized_admin", "support"];
 
@@ -334,6 +337,8 @@ function AdminPanel() {
                     <TableHead>Email</TableHead>
                     <TableHead>Telefono</TableHead>
                     <TableHead>Piano</TableHead>
+                    <TableHead>Fascia msg</TableHead>
+                    <TableHead>Prezzo</TableHead>
                     <TableHead>Scadenza</TableHead>
                     <TableHead>
                       <span className="inline-flex items-center gap-1">
@@ -359,7 +364,14 @@ function AdminPanel() {
                       <TableCell className="whitespace-nowrap">{s.owner_name ?? "—"}</TableCell>
                       <TableCell className="text-muted-foreground whitespace-nowrap">{s.email ?? "—"}</TableCell>
                       <TableCell className="text-muted-foreground whitespace-nowrap">{s.phone ?? "—"}</TableCell>
-                      <TableCell><Badge variant="outline" className="capitalize">{s.plan} · {s.billing_cycle === "annual" ? "Annuale" : "Mensile"}</Badge></TableCell>
+                      <TableCell><Badge variant="outline">{planLabel(s.plan)} · {s.billing_cycle === "annual" ? "Annuale" : "Mensile"}</Badge></TableCell>
+                      <TableCell className="whitespace-nowrap text-muted-foreground">{s.message_tier ? `${s.message_tier.toLocaleString("it-IT")} msg` : "—"}</TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {priceForTier(s.plan, s.message_tier) != null
+                          ? <span className="font-medium">€{priceForTier(s.plan, s.message_tier)}<span className="text-xs text-muted-foreground font-normal">/mese</span></span>
+                          : <span className="text-muted-foreground">—</span>}
+                        <div className="text-[10px] text-muted-foreground">Setup €{SETUP_FEE[(["silver","gold","platinum"].includes(s.plan) ? s.plan : "silver") as PlanId]}</div>
+                      </TableCell>
                       <TableCell className="whitespace-nowrap text-muted-foreground">
                         {s.subscription_expires_at ? new Date(s.subscription_expires_at).toLocaleDateString("it-IT") : "—"}
                       </TableCell>
@@ -499,13 +511,13 @@ function AdminPanel() {
                   const plan = e.target.value as typeof PLAN_OPTIONS[number];
                   setStudioForm({ ...studioForm, plan, message_tier: MESSAGE_TIERS[plan][0] });
                 }}>
-                  {PLAN_OPTIONS.map((p) => <option key={p} value={p} className="capitalize">{p.charAt(0).toUpperCase() + p.slice(1)}</option>)}
+                  {PLAN_OPTIONS.map((p) => <option key={p} value={p}>{PLAN_LABELS[p]}</option>)}
                 </select>
               </div>
               <div>
                 <Label>Fascia messaggi / mese</Label>
                 <select className="w-full h-10 border rounded-md px-2 bg-background" value={studioForm.message_tier ?? ""} onChange={(e) => setStudioForm({ ...studioForm, message_tier: Number(e.target.value) })}>
-                  {MESSAGE_TIERS[studioForm.plan].map((t) => <option key={t} value={t}>{t.toLocaleString("it-IT")} messaggi</option>)}
+                  {MESSAGE_TIERS[studioForm.plan].map((t) => <option key={t} value={t}>{t.toLocaleString("it-IT")} msg — €{priceForTier(studioForm.plan, t)}/mese</option>)}
                 </select>
               </div>
             </div>

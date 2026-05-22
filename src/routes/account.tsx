@@ -15,6 +15,7 @@ import {
 import { useAuth } from "@/lib/useAuth";
 import { usePermissions } from "@/lib/usePermissions";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 import { useState, useMemo, useEffect } from "react";
 import { toast } from "sonner";
 import {
@@ -22,6 +23,10 @@ import {
   Download, AlertTriangle, Check, Sparkles, X as XIcon,
 } from "lucide-react";
 import { PASSWORD_RULES, passwordMeetsRules } from "@/lib/password-utils";
+import {
+  PLAN_IDS, PLAN_LABELS, MESSAGE_TIER_PRICES, MESSAGE_TIERS, MAX_OPERATORS,
+  priceForTier, type PlanId,
+} from "@/lib/plans";
 
 
 export const Route = createFileRoute("/account")({
@@ -339,12 +344,34 @@ function NotificationsSection() {
 }
 
 function SubscriptionSection() {
-  // Dati placeholder — collegabili a Stripe/Paddle in seguito
-  const used = 720, total = 1000;
-  const pct = Math.round((used / total) * 100);
+  const { user } = useAuth();
+  const { data: studio } = useQueryStudio(user?.id);
+
+  const plan: PlanId = (studio?.plan && (PLAN_IDS as string[]).includes(studio.plan) ? studio.plan : "silver") as PlanId;
+  const tier = studio?.message_tier ?? MESSAGE_TIERS[plan][0];
+  const price = priceForTier(plan, tier) ?? 0;
+  const cycle = studio?.billing_cycle === "annual" ? "Annuale" : "Mensile";
+  const renewal = studio?.subscription_expires_at
+    ? new Date(studio.subscription_expires_at).toLocaleDateString("it-IT")
+    : "—";
+  const statusLabel =
+    studio?.status === "suspended" ? "Sospeso"
+    : (studio?.subscription_expires_at && new Date(studio.subscription_expires_at).getTime() - Date.now() < 7 * 86400000) ? "In scadenza"
+    : "Attivo";
+  const statusBadgeClass = statusLabel === "Attivo"
+    ? "bg-green-500/15 text-green-600 hover:bg-green-500/15"
+    : statusLabel === "In scadenza"
+      ? "bg-amber-500/15 text-amber-600 hover:bg-amber-500/15"
+      : "bg-red-500/15 text-red-600 hover:bg-red-500/15";
+
+  // Placeholder utilizzo (collegabile a metriche reali in seguito)
+  const used = 720;
+  const total = tier;
+  const pct = Math.min(100, Math.round((used / total) * 100));
   const barColor = pct >= 90 ? "bg-destructive" : pct >= 70 ? "bg-yellow-500" : "bg-green-500";
-  const remainingPct = 100 - pct;
-  const opUsed = 4, opTotal = 5;
+
+  const opTotal = MAX_OPERATORS[plan];
+  const opUsed = Math.min(opTotal, 2);
   const opPct = Math.round((opUsed / opTotal) * 100);
   const opColor = opPct >= 100 ? "bg-destructive" : opPct >= 80 ? "bg-yellow-500" : "bg-green-500";
 
@@ -357,40 +384,49 @@ function SubscriptionSection() {
 
       <Card className="p-6 flex items-center justify-between">
         <div>
-          <div className="flex items-center gap-2">
-            <h3 className="text-lg font-semibold">Piano Pro</h3>
-            <Badge className="bg-green-500/15 text-green-600 hover:bg-green-500/15">Attivo</Badge>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h3 className="text-lg font-semibold">Piano {PLAN_LABELS[plan]}</h3>
+            <Badge className={statusBadgeClass}>{statusLabel}</Badge>
+            <Badge variant="outline">{cycle}</Badge>
           </div>
-          <p className="text-sm text-muted-foreground">Mensile · rinnovo il 13/06/2026</p>
+          <p className="text-sm text-muted-foreground">€{price}/mese · rinnovo il {renewal}</p>
         </div>
         <Sparkles className="size-8 text-primary opacity-60" />
       </Card>
 
-      <Card className="p-6 space-y-3">
-        <div className="flex items-start justify-between">
-          <div>
-            <h3 className="font-semibold">Messaggi WhatsApp / SMS</h3>
-            <p className="text-sm text-muted-foreground">{used} messaggi utilizzati questo mese</p>
-            <p className="text-xs text-muted-foreground">{total - used} rimanenti su {total}</p>
-          </div>
+      <Card className="p-6 space-y-4">
+        <div>
+          <h3 className="font-semibold">Messaggi WhatsApp / SMS</h3>
+          <p className="text-sm text-muted-foreground">{used.toLocaleString("it-IT")} su {total.toLocaleString("it-IT")} messaggi questo mese</p>
         </div>
         <div className="h-2 bg-muted rounded-full overflow-hidden">
           <div className={`h-full ${barColor} transition-all`} style={{ width: `${pct}%` }} />
         </div>
-        {remainingPct < 10 && (
-          <div className="flex gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-sm">
-            <AlertTriangle className="size-4 text-destructive shrink-0 mt-0.5" />
-            <span>Stai esaurendo i messaggi disponibili. Acquista un pacchetto extra per continuare a comunicare con i tuoi pazienti senza interruzioni.</span>
+        <div>
+          <div className="text-xs text-muted-foreground mb-2">Fasce disponibili per il piano {PLAN_LABELS[plan]}</div>
+          <div className="grid sm:grid-cols-3 gap-2">
+            {MESSAGE_TIERS[plan].map((t) => {
+              const active = t === tier;
+              return (
+                <div
+                  key={t}
+                  className={`p-3 rounded-lg border text-sm ${active ? "border-primary bg-primary/5" : "border-border"}`}
+                >
+                  <div className="font-medium">{t.toLocaleString("it-IT")} msg</div>
+                  <div className="text-xs text-muted-foreground">€{MESSAGE_TIER_PRICES[plan][t]}/mese</div>
+                  {active && <Badge className="mt-1 bg-primary/15 text-primary hover:bg-primary/15">Attiva</Badge>}
+                </div>
+              );
+            })}
           </div>
-        )}
+        </div>
         <BuyMessagesDialog />
       </Card>
 
       <Card className="p-6 space-y-3">
         <div>
           <h3 className="font-semibold">Operatori collegati</h3>
-          <p className="text-sm text-muted-foreground">{opUsed} operatori attivi su {opTotal} disponibili</p>
-          <p className="text-xs text-muted-foreground">{opTotal - opUsed} slot rimanenti</p>
+          <p className="text-sm text-muted-foreground">{opUsed} operatori attivi su {opTotal} disponibili (piano {PLAN_LABELS[plan]})</p>
         </div>
         <div className="h-2 bg-muted rounded-full overflow-hidden">
           <div className={`h-full ${opColor} transition-all`} style={{ width: `${opPct}%` }} />
@@ -401,13 +437,13 @@ function SubscriptionSection() {
         <div>
           <h3 className="font-semibold">Prossimo rinnovo</h3>
           <div className="text-sm text-muted-foreground mt-1">
-            <div>Data: 13/06/2026</div>
-            <div>Importo: €49/mese</div>
-            <div>Tipo: Mensile</div>
+            <div>Data: {renewal}</div>
+            <div>Importo: €{price}/mese</div>
+            <div>Tipo: {cycle}</div>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <UpgradeDialog />
+          <UpgradeDialog currentPlan={plan} />
           <ManagePaymentDialog />
           <InvoicesDialog />
           <Button variant="outline" asChild>
@@ -418,6 +454,22 @@ function SubscriptionSection() {
     </div>
   );
 }
+
+function useQueryStudio(userId: string | undefined) {
+  return useQuery({
+    queryKey: ["my-studio", userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("studios")
+        .select("plan, message_tier, billing_cycle, subscription_expires_at, status")
+        .eq("owner_user_id", userId!)
+        .maybeSingle();
+      return data;
+    },
+  });
+}
+
 
 function BuyMessagesDialog() {
   const packs = [
@@ -481,11 +533,11 @@ function ManagePaymentDialog() {
   );
 }
 
-function UpgradeDialog() {
-  const plans = [
-    { name: "Piano Base", price: 19, current: false, popular: false, features: ["500 messaggi/mese", "2 operatori", "Supporto standard"], action: "Passa a Base" },
-    { name: "Piano Pro", price: 49, current: true, popular: true, features: ["1.000 messaggi/mese", "5 operatori", "Supporto prioritario", "Workflow avanzati"], action: "Piano attuale" },
-    { name: "Piano Business", price: 119, current: false, popular: false, features: ["Messaggi illimitati", "Operatori illimitati", "Supporto dedicato", "Workflow avanzati", "Reportistica avanzata"], action: "Passa a Business" },
+function UpgradeDialog({ currentPlan }: { currentPlan: PlanId }) {
+  const plans: { id: PlanId; opsRange: string; popular: boolean }[] = [
+    { id: "silver", opsRange: "1-2 operatori", popular: false },
+    { id: "gold", opsRange: "3-4 operatori", popular: true },
+    { id: "platinum", opsRange: "5-6 operatori", popular: false },
   ];
   return (
     <Dialog>
@@ -493,33 +545,49 @@ function UpgradeDialog() {
       <DialogContent className="max-w-4xl">
         <DialogHeader>
           <DialogTitle>Scegli il tuo piano</DialogTitle>
-          <DialogDescription>Passa a un piano superiore per sbloccare più funzionalità e messaggi</DialogDescription>
+          <DialogDescription>Tre piani Silver, Gold e Platinum con diverse fasce di messaggi e operatori</DialogDescription>
         </DialogHeader>
         <div className="grid md:grid-cols-3 gap-4 py-2">
-          {plans.map((p) => (
-            <Card key={p.name} className={`p-5 relative ${p.popular ? "border-primary shadow-elegant" : ""}`}>
-              {p.popular && <Badge className="absolute -top-2 right-4 bg-primary">Più popolare</Badge>}
-              <div className="text-lg font-semibold">{p.name}</div>
-              <div className="text-3xl font-bold mt-1">€{p.price}<span className="text-sm font-normal text-muted-foreground">/mese</span></div>
-              <ul className="space-y-1.5 my-4 text-sm">
-                {p.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2"><Check className="size-4 text-primary mt-0.5 shrink-0" /><span>{f}</span></li>
-                ))}
-              </ul>
-              <Button className="w-full" disabled={p.current} variant={p.popular && !p.current ? "default" : "outline"}
-                onClick={() => toast.success(`${p.action}`)}>
-                {p.current ? "Piano attuale" : p.action}
-              </Button>
-            </Card>
-          ))}
+          {plans.map((p) => {
+            const tiers = MESSAGE_TIERS[p.id];
+            const minPrice = Math.min(...Object.values(MESSAGE_TIER_PRICES[p.id]));
+            const current = p.id === currentPlan;
+            const features = [
+              p.opsRange,
+              `Scegli tra ${tiers.map((t) => t.toLocaleString("it-IT")).join(" / ")} msg/mese`,
+              "Tutte le funzionalità incluse",
+              "Numero WhatsApp dedicato",
+            ];
+            return (
+              <Card key={p.id} className={`p-5 relative ${p.popular ? "border-primary shadow-elegant" : ""}`}>
+                {p.popular && <Badge className="absolute -top-2 right-4 bg-primary">Più popolare</Badge>}
+                <div className="text-lg font-semibold">{PLAN_LABELS[p.id]}</div>
+                <div className="text-3xl font-bold mt-1">da €{minPrice}<span className="text-sm font-normal text-muted-foreground">/mese</span></div>
+                <ul className="space-y-1.5 my-4 text-sm">
+                  {features.map((f) => (
+                    <li key={f} className="flex items-start gap-2"><Check className="size-4 text-primary mt-0.5 shrink-0" /><span>{f}</span></li>
+                  ))}
+                </ul>
+                <Button
+                  className="w-full"
+                  disabled={current}
+                  variant={p.popular && !current ? "default" : "outline"}
+                  onClick={() => toast.info("Contatta il supporto DentAI per cambiare piano")}
+                >
+                  {current ? "Piano attuale" : `Passa a ${PLAN_LABELS[p.id]}`}
+                </Button>
+              </Card>
+            );
+          })}
         </div>
         <p className="text-xs text-muted-foreground">
-          Il cambio piano è immediato. La differenza di prezzo verrà calcolata proporzionalmente ai giorni rimanenti del periodo in corso.
+          Il cambio piano viene gestito dal team DentAI. Contattaci tramite il supporto per procedere.
         </p>
       </DialogContent>
     </Dialog>
   );
 }
+
 
 function InvoicesDialog() {
   const invoices = [
