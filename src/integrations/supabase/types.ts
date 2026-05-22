@@ -628,6 +628,7 @@ export type Database = {
           created_at: string
           email: string | null
           id: string
+          message_tier: number | null
           name: string
           owner_name: string | null
           owner_user_id: string | null
@@ -642,6 +643,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          message_tier?: number | null
           name: string
           owner_name?: string | null
           owner_user_id?: string | null
@@ -656,6 +658,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          message_tier?: number | null
           name?: string
           owner_name?: string | null
           owner_user_id?: string | null
