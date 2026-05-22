@@ -484,19 +484,14 @@ function AdminPanel() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Data inizio abbonamento</Label>
-                <Input type="date" value={studioForm.subscription_started_at} onChange={(e) => setStudioForm({ ...studioForm, subscription_started_at: e.target.value })} />
-              </div>
-              <div>
-                <Label>Stato</Label>
-                <select className="w-full h-10 border rounded-md px-2 bg-background" value={studioForm.status} onChange={(e) => setStudioForm({ ...studioForm, status: e.target.value })}>
-                  <option value="active">Attivo</option>
-                  <option value="suspended">Sospeso</option>
-                </select>
-              </div>
+            <div>
+              <Label>Stato</Label>
+              <select className="w-full h-10 border rounded-md px-2 bg-background" value={studioForm.status} onChange={(e) => setStudioForm({ ...studioForm, status: e.target.value })}>
+                <option value="active">Attivo</option>
+                <option value="suspended">Sospeso</option>
+              </select>
             </div>
+
             <p className="text-xs text-muted-foreground">La data di scadenza viene calcolata automaticamente: +30 giorni se mensile, +365 giorni se annuale.</p>
           </div>
           <DialogFooter><Button onClick={saveStudio}>{editingId ? "Salva modifiche" : "Crea studio"}</Button></DialogFooter>
