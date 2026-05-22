@@ -22,6 +22,10 @@ import {
   Download, AlertTriangle, Check, Sparkles, X as XIcon,
 } from "lucide-react";
 import { PASSWORD_RULES, passwordMeetsRules } from "@/lib/password-utils";
+import {
+  PLAN_IDS, PLAN_LABELS, MESSAGE_TIER_PRICES, MESSAGE_TIERS, MAX_OPERATORS,
+  priceForTier, type PlanId,
+} from "@/lib/plans";
 
 
 export const Route = createFileRoute("/account")({
