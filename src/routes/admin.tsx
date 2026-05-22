@@ -364,7 +364,14 @@ function AdminPanel() {
                       <TableCell className="whitespace-nowrap">{s.owner_name ?? "—"}</TableCell>
                       <TableCell className="text-muted-foreground whitespace-nowrap">{s.email ?? "—"}</TableCell>
                       <TableCell className="text-muted-foreground whitespace-nowrap">{s.phone ?? "—"}</TableCell>
-                      <TableCell><Badge variant="outline" className="capitalize">{s.plan} · {s.billing_cycle === "annual" ? "Annuale" : "Mensile"}</Badge></TableCell>
+                      <TableCell><Badge variant="outline">{planLabel(s.plan)} · {s.billing_cycle === "annual" ? "Annuale" : "Mensile"}</Badge></TableCell>
+                      <TableCell className="whitespace-nowrap text-muted-foreground">{s.message_tier ? `${s.message_tier.toLocaleString("it-IT")} msg` : "—"}</TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {priceForTier(s.plan, s.message_tier) != null
+                          ? <span className="font-medium">€{priceForTier(s.plan, s.message_tier)}<span className="text-xs text-muted-foreground font-normal">/mese</span></span>
+                          : <span className="text-muted-foreground">—</span>}
+                        <div className="text-[10px] text-muted-foreground">Setup €{SETUP_FEE[(["silver","gold","platinum"].includes(s.plan) ? s.plan : "silver") as PlanId]}</div>
+                      </TableCell>
                       <TableCell className="whitespace-nowrap text-muted-foreground">
                         {s.subscription_expires_at ? new Date(s.subscription_expires_at).toLocaleDateString("it-IT") : "—"}
                       </TableCell>
