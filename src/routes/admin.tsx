@@ -517,7 +517,7 @@ function AdminPanel() {
               <div>
                 <Label>Fascia messaggi / mese</Label>
                 <select className="w-full h-10 border rounded-md px-2 bg-background" value={studioForm.message_tier ?? ""} onChange={(e) => setStudioForm({ ...studioForm, message_tier: Number(e.target.value) })}>
-                  {MESSAGE_TIERS[studioForm.plan].map((t) => <option key={t} value={t}>{t.toLocaleString("it-IT")} messaggi</option>)}
+                  {MESSAGE_TIERS[studioForm.plan].map((t) => <option key={t} value={t}>{t.toLocaleString("it-IT")} msg — €{priceForTier(studioForm.plan, t)}/mese</option>)}
                 </select>
               </div>
             </div>
