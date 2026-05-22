@@ -176,6 +176,7 @@ function AdminPanel() {
 
   const saveStudio = async () => {
     if (!studioForm.name) return toast.error("Inserisci il nome");
+    if (!editingId && !studioForm.email) return toast.error("Email obbligatoria per creare l'account");
     const payload = {
       name: studioForm.name,
       email: studioForm.email || null,
@@ -187,12 +188,43 @@ function AdminPanel() {
       subscription_started_at: studioForm.subscription_started_at || null,
       status: studioForm.status,
     };
-    const { error } = editingId
-      ? await supabase.from("studios").update(payload).eq("id", editingId)
-      : await supabase.from("studios").insert(payload);
-    if (error) return toast.error(error.message);
-    toast.success(editingId ? "Studio aggiornato" : "Studio creato");
+    if (editingId) {
+      const { error } = await supabase.from("studios").update(payload).eq("id", editingId);
+      if (error) return toast.error(error.message);
+      toast.success("Studio aggiornato");
+      setStudioOpen(false);
+      qc.invalidateQueries({ queryKey: ["admin-studios"] });
+      return;
+    }
+    // Create studio + auth account
+    const { data: inserted, error } = await supabase.from("studios").insert(payload).select("id").single();
+    if (error || !inserted) return toast.error(error?.message ?? "Errore creazione studio");
+    const tempPassword = generateTempPassword(12);
+    try {
+      await createAccount({
+        data: {
+          studio_id: inserted.id,
+          email: studioForm.email,
+          password: tempPassword,
+          first_name: studioForm.owner_name || studioForm.name,
+        },
+      });
+    } catch (e: any) {
+      toast.error(`Studio creato, ma errore nell'account: ${e.message}. Puoi riprovare dalla scheda studio.`);
+      setStudioOpen(false);
+      qc.invalidateQueries({ queryKey: ["admin-studios"] });
+      return;
+    }
     setStudioOpen(false);
+    qc.invalidateQueries({ queryKey: ["admin-studios"] });
+    setCredentials({
+      studio_name: studioForm.name,
+      first_name: studioForm.owner_name || studioForm.name,
+      email: studioForm.email,
+      password: tempPassword,
+    });
+  };
+
     qc.invalidateQueries({ queryKey: ["admin-studios"] });
   };
 
