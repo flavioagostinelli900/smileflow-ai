@@ -115,7 +115,7 @@ export type Reminder = {
 };
 
 export type OpeningHour = { day: string; open: string; close: string; active: boolean };
-export type VisitType = { name: string; minutes: number; ai_booking: boolean };
+export type VisitType = { name: string; minutes: number; ai_booking: boolean; suitable_for?: PatientGroup; avg_price?: number };
 export type FollowupConfig = {
   discount_enabled: boolean;
   discount_percent: number;
