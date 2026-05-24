@@ -119,7 +119,13 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <RealtimeBridge />
       <Outlet />
     </QueryClientProvider>
   );
+}
+
+function RealtimeBridge() {
+  useRealtimeSync();
+  return null;
 }
