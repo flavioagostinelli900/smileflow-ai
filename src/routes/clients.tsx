@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import { toast } from "sonner";
 import { ImportClientsDialog } from "@/components/ImportClientsDialog";
+import { AGE_GROUP_EMOJI, AGE_GROUP_LABEL } from "@/lib/age";
 import { usePermissions } from "@/lib/usePermissions";
 import { ReadOnlyBanner } from "@/components/ReadOnlyBanner";
 
