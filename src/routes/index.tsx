@@ -284,7 +284,6 @@ function Dashboard() {
               <h3 className="font-semibold">Appuntamenti & recuperi</h3>
               <p className="text-xs text-muted-foreground truncate">{rangeLabel}</p>
             </div>
-            <Badge variant="outline" className="text-xs whitespace-nowrap">+18% vs periodo precedente</Badge>
           </div>
           <ResponsiveContainer width="100%" height={260}>
             <AreaChart data={trend}>
