@@ -210,11 +210,7 @@ function Operators() {
               <div className="flex items-center gap-2 flex-wrap">
                 <Switch
                   checked={!!o.online}
-                  onCheckedChange={(checked) => {
-                    if (!canManage) return;
-                    openToggleDialog(o, checked);
-                  }}
-                  disabled={!canManage}
+                  onCheckedChange={(checked) => openToggleDialog(o, checked)}
                   aria-label="Toggle online"
                 />
                 <Badge className={o.online ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"}>
