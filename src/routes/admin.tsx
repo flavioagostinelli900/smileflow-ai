@@ -193,11 +193,34 @@ function AdminPanel() {
       status: studioForm.status,
     };
     if (editingId) {
+      // Check if plan downgrade would exceed operator limit
+      const newMax = MAX_OPERATORS[studioForm.plan];
+      const { count: opCount } = await supabase
+        .from("operators")
+        .select("id", { count: "exact", head: true });
+      const current = opCount ?? 0;
+      if (current > newMax) {
+        const ok = window.confirm(
+          `Lo studio ha ${current} operatori attivi ma il nuovo piano ${PLAN_LABELS[studioForm.plan]} prevede massimo ${newMax} operatori.\n\nProcedendo, gli ultimi ${current - newMax} operatori aggiunti verranno disattivati (impostati offline). Vuoi procedere comunque?`,
+        );
+        if (!ok) return;
+        // Disable the most recently created operators above the limit
+        const { data: extras } = await supabase
+          .from("operators")
+          .select("id")
+          .order("created_at", { ascending: false })
+          .limit(current - newMax);
+        if (extras && extras.length > 0) {
+          await supabase.from("operators").update({ online: false }).in("id", extras.map((e) => e.id));
+        }
+      }
       const { error } = await supabase.from("studios").update(payload).eq("id", editingId);
       if (error) return toast.error(error.message);
-      toast.success("Studio aggiornato");
+      toast.success("Studio aggiornato — modifiche in tempo reale");
       setStudioOpen(false);
       qc.invalidateQueries({ queryKey: ["admin-studios"] });
+      qc.invalidateQueries({ queryKey: ["my-studio-plan"] });
+      qc.invalidateQueries({ queryKey: ["operators"] });
       return;
     }
     // Create studio + auth account
