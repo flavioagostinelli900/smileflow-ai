@@ -21,6 +21,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { usePermissions } from "@/lib/usePermissions";
 import { ImpersonationBar } from "@/components/ImpersonationBar";
 import { SupportWidget } from "@/components/SupportWidget";
+import { PWAInstallBanner } from "@/components/PWAInstallBanner";
 import { useState } from "react";
 
 const nav = [
@@ -109,6 +110,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthGate>
+    <PWAInstallBanner />
     <div className="flex min-h-screen bg-gradient-subtle">
       {/* Desktop sidebar */}
       <aside className="hidden md:flex w-64 flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border sticky top-0 h-screen">

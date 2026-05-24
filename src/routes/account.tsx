@@ -402,24 +402,7 @@ function SubscriptionSection() {
         <div className="h-2 bg-muted rounded-full overflow-hidden">
           <div className={`h-full ${barColor} transition-all`} style={{ width: `${pct}%` }} />
         </div>
-        <div>
-          <div className="text-xs text-muted-foreground mb-2">Fasce disponibili per il piano {PLAN_LABELS[plan]}</div>
-          <div className="grid sm:grid-cols-3 gap-2">
-            {MESSAGE_TIERS[plan].map((t) => {
-              const active = t === tier;
-              return (
-                <div
-                  key={t}
-                  className={`p-3 rounded-lg border text-sm ${active ? "border-primary bg-primary/5" : "border-border"}`}
-                >
-                  <div className="font-medium">{t.toLocaleString("it-IT")} msg</div>
-                  <div className="text-xs text-muted-foreground">€{MESSAGE_TIER_PRICES[plan][t]}/mese</div>
-                  {active && <Badge className="mt-1 bg-primary/15 text-primary hover:bg-primary/15">Attiva</Badge>}
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        <UpgradeMessagesSection plan={plan} currentTier={tier} userId={user?.id} />
         <BuyMessagesDialog />
       </Card>
 
@@ -619,5 +602,84 @@ function InvoicesDialog() {
         <p className="text-xs text-muted-foreground">Le fatture vengono generate automaticamente ad ogni rinnovo del piano.</p>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function UpgradeMessagesSection({
+  plan, currentTier, userId,
+}: { plan: PlanId; currentTier: number; userId: string | undefined }) {
+  const tiers = MESSAGE_TIERS[plan];
+  const [pending, setPending] = useState<number | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const confirm = async () => {
+    if (!pending || !userId) return;
+    setSaving(true);
+    const { error } = await supabase
+      .from("studios")
+      .update({ message_tier: pending })
+      .eq("owner_user_id", userId);
+    setSaving(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(`Fascia aggiornata a ${pending.toLocaleString("it-IT")} msg/mese`);
+    setPending(null);
+  };
+
+  const pendingPrice = pending ? MESSAGE_TIER_PRICES[plan][pending] : 0;
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <div>
+          <div className="text-sm font-medium">Aumenta i tuoi messaggi mensili</div>
+          <div className="text-xs text-muted-foreground">
+            Cambia la fascia messaggi senza modificare gli operatori. Il cambio è immediato.
+          </div>
+        </div>
+      </div>
+      <div className="grid sm:grid-cols-3 gap-2">
+        {tiers.map((t) => {
+          const active = t === currentTier;
+          return (
+            <button
+              key={t}
+              type="button"
+              disabled={active}
+              onClick={() => setPending(t)}
+              className={`p-3 rounded-lg border text-left text-sm transition-colors ${
+                active
+                  ? "border-primary bg-primary/10 cursor-default"
+                  : "border-border hover:border-primary hover:bg-primary/5"
+              }`}
+            >
+              <div className="font-medium">{t.toLocaleString("it-IT")} msg</div>
+              <div className="text-xs text-muted-foreground">€{MESSAGE_TIER_PRICES[plan][t]}/mese</div>
+              {active && <Badge className="mt-1 bg-primary/15 text-primary hover:bg-primary/15">Attiva</Badge>}
+            </button>
+          );
+        })}
+      </div>
+
+      <Dialog open={pending !== null} onOpenChange={(o) => !o && setPending(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Conferma cambio fascia</DialogTitle>
+            <DialogDescription>
+              Vuoi passare a {pending?.toLocaleString("it-IT")} messaggi/mese a €{pendingPrice}?
+              Il cambio è immediato e verrà addebitato sulla tua carta collegata.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setPending(null)} disabled={saving}>Annulla</Button>
+            <Button onClick={confirm} disabled={saving} className="bg-gradient-primary">
+              {saving ? "Salvataggio…" : "Conferma"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
