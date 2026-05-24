@@ -162,6 +162,17 @@ function Operators() {
           <div className="space-y-3">
             <div><Label>Nome</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Es. Dr. Rossi" /></div>
             <div><Label>Ruolo</Label><Input value={role} onChange={(e) => setRole(e.target.value)} placeholder="Es. Igienista" /></div>
+            <div>
+              <Label>Fascia pazienti</Label>
+              <Select value={patientGroup} onValueChange={(v) => setPatientGroup(v as PatientGroup)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="adults">👤 Adulti</SelectItem>
+                  <SelectItem value="children">👶 Bambini (Pediatrico)</SelectItem>
+                  <SelectItem value="all">👥 Tutti</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setNewOpen(false)} disabled={saving}>Annulla</Button>
