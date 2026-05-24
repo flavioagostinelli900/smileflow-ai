@@ -1,5 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 
+export type AgeGroup = "adult" | "pediatric" | "unspecified";
+export type PatientGroup = "adults" | "children" | "all";
+
 export type Client = {
   id: string;
   first_name: string;
@@ -13,6 +16,8 @@ export type Client = {
   status: "active" | "inactive";
   notes: string | null;
   tags: string[];
+  birth_date: string | null;
+  age_group: AgeGroup;
 };
 
 export type Operator = {
@@ -21,6 +26,7 @@ export type Operator = {
   role: string | null;
   departments: string[];
   online: boolean;
+  patient_group: PatientGroup;
 };
 
 export type Conversation = {
