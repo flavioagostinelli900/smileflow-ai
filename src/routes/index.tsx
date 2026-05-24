@@ -7,6 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Calendar as CalendarIcon, UserCheck, PhoneIncoming, Send, MessagesSquare, Sparkles, Calendar, KeyRound, X } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { useAuth } from "@/lib/useAuth";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
+import { getDashboardRevenue } from "@/lib/revenue.functions";
 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarPicker } from "@/components/ui/calendar";
