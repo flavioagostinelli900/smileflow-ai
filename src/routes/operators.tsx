@@ -73,6 +73,7 @@ function Operators() {
       name: name.trim(),
       role: role.trim() || null,
       online: false,
+      patient_group: patientGroup,
     });
     setSaving(false);
     if (error) {
@@ -80,7 +81,7 @@ function Operators() {
       return;
     }
     toast.success("Operatore creato");
-    setName(""); setRole("");
+    setName(""); setRole(""); setPatientGroup("all");
     setNewOpen(false);
     qc.invalidateQueries({ queryKey: ["operators"] });
   };
