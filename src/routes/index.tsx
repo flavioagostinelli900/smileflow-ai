@@ -95,41 +95,98 @@ function Dashboard() {
   const realRevenue = revenueData?.total ?? 0;
   const [breakdownOpen, setBreakdownOpen] = useState(false);
 
+  // Real-time stats from Supabase scoped to selected range
+  const { data: metrics } = useQuery({
+    queryKey: ["dashboard-metrics", fromIso, toIso],
+    queryFn: async () => {
+      const [appts, missed, msgs, convos, recentConvosRes, apptList] = await Promise.all([
+        supabase.from("appointments").select("id, visit_type, starts_at, source", { count: "exact" })
+          .gte("starts_at", fromIso).lte("starts_at", toIso),
+        supabase.from("missed_calls").select("id, status", { count: "exact" })
+          .gte("called_at", fromIso).lte("called_at", toIso),
+        supabase.from("messages").select("id", { count: "exact", head: true })
+          .gte("created_at", fromIso).lte("created_at", toIso),
+        supabase.from("conversations").select("id, status", { count: "exact" })
+          .gte("last_message_at", fromIso).lte("last_message_at", toIso),
+        supabase.from("conversations")
+          .select("id, status, tags, last_message_at, client:clients(first_name,last_name), messages(content,created_at)")
+          .order("last_message_at", { ascending: false })
+          .limit(5),
+        supabase.from("appointments").select("starts_at, visit_type, source")
+          .gte("starts_at", fromIso).lte("starts_at", toIso),
+      ]);
+      const apptsRows = (apptList.data ?? []) as { starts_at: string; visit_type: string; source: string | null }[];
+      const recovered = (missed.data ?? []).filter((m) => m.status === "converted").length;
+      return {
+        apptsCount: appts.count ?? 0,
+        recovered,
+        callsCount: missed.count ?? 0,
+        msgsCount: msgs.count ?? 0,
+        convosCount: convos.count ?? 0,
+        apptsRows,
+        recent: (recentConvosRes.data ?? []) as Array<{
+          id: string; status: string; tags: string[]; last_message_at: string;
+          client: { first_name: string; last_name: string } | null;
+          messages: { content: string; created_at: string }[] | null;
+        }>,
+      };
+    },
+  });
+
   const stats = {
-    appts: Math.round(148 * scale),
-    recovered: Math.round(62 * scale),
-    calls: Math.round(37 * scale),
-    msgs: Math.round(1284 * scale),
-    convos: Math.round(29 * Math.max(1, scale * 0.6)),
+    appts: metrics?.apptsCount ?? 0,
+    recovered: metrics?.recovered ?? 0,
+    calls: metrics?.callsCount ?? 0,
+    msgs: metrics?.msgsCount ?? 0,
+    convos: metrics?.convosCount ?? 0,
     revenue: realRevenue >= 1000 ? `${(realRevenue / 1000).toFixed(1)}k` : realRevenue.toFixed(0),
-    response: 94,
+    response: metrics && metrics.callsCount > 0
+      ? Math.round((metrics.recovered / metrics.callsCount) * 100)
+      : 0,
   };
 
   const trend = useMemo(() => {
-    const labels = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"];
+    const rows = metrics?.apptsRows ?? [];
     const len = Math.min(14, Math.max(3, days));
-    return Array.from({ length: len }).map((_, i) => ({
-      d: len <= 7 ? labels[i % 7] : `G${i + 1}`,
-      appt: Math.round(15 + Math.random() * 18 * scale),
-      recovered: Math.round(4 + Math.random() * 10 * scale),
-    }));
-  }, [days, scale]);
+    const buckets: { d: string; appt: number; recovered: number }[] = [];
+    for (let i = len - 1; i >= 0; i--) {
+      const d = new Date(range.to); d.setDate(d.getDate() - i); d.setHours(0, 0, 0, 0);
+      const next = new Date(d); next.setDate(next.getDate() + 1);
+      const dayLabel = len <= 7
+        ? ["Dom", "Lun", "Mar", "Mer", "Gio", "Ven", "Sab"][d.getDay()]
+        : `${d.getDate()}/${d.getMonth() + 1}`;
+      const inDay = rows.filter((r) => {
+        const t = new Date(r.starts_at).getTime();
+        return t >= d.getTime() && t < next.getTime();
+      });
+      buckets.push({
+        d: dayLabel,
+        appt: inDay.length,
+        recovered: inDay.filter((r) => r.source === "ai_chat").length,
+      });
+    }
+    return buckets;
+  }, [metrics?.apptsRows, days, range.to]);
 
-  const channels = [
-    { name: "Follow-up", v: Math.round(412 * scale) },
-    { name: "Inattivi", v: Math.round(287 * scale) },
-    { name: "Chiamate", v: Math.round(164 * scale) },
-    { name: "Igiene", v: Math.round(198 * scale) },
-    { name: "Post-visita", v: Math.round(124 * scale) },
-  ];
+  const channels = useMemo(() => {
+    const rows = metrics?.apptsRows ?? [];
+    const map = new Map<string, number>();
+    for (const r of rows) map.set(r.visit_type, (map.get(r.visit_type) ?? 0) + 1);
+    return Array.from(map.entries())
+      .sort((a, b) => b[1] - a[1]).slice(0, 6)
+      .map(([name, v]) => ({ name, v }));
+  }, [metrics?.apptsRows]);
 
-  const recentConvos = [
-    { name: "Giulia Romano", msg: "Sì, va bene martedì mattina alle 10", tag: "Igiene", status: "AI" },
-    { name: "Marco Bianchi", msg: "Posso spostare al pomeriggio?", tag: "Conservativa", status: "Operatore" },
-    { name: "Sara Conti", msg: "Grazie, confermo l'appuntamento", tag: "Recupero", status: "Convertito" },
-    { name: "Luca De Santis", msg: "Mi richiamate per favore?", tag: "Chiamata persa", status: "AI" },
-    { name: "Elena Ferri", msg: "Perfetto, a giovedì!", tag: "Follow-up", status: "Convertito" },
-  ];
+  const recentConvos = useMemo(() => {
+    return (metrics?.recent ?? []).map((c) => {
+      const name = c.client ? `${c.client.first_name} ${c.client.last_name}` : "Sconosciuto";
+      const last = (c.messages ?? []).slice().sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
+      const tag = c.tags?.[0] ?? "Conversazione";
+      const status = c.status === "booked" ? "Convertito" : c.status === "operator" ? "Operatore" : "AI";
+      return { name, msg: last?.content ?? "—", tag, status };
+    });
+  }, [metrics?.recent]);
+
 
   const rangeLabel = preset === "custom" && appliedCustom?.from && appliedCustom?.to
     ? `${fmt(appliedCustom.from)} - ${fmt(appliedCustom.to)}`
