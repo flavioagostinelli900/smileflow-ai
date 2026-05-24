@@ -27,6 +27,7 @@ import {
   PLAN_IDS as PLAN_OPTIONS,
   PLAN_LABELS,
   MESSAGE_TIERS,
+  MAX_OPERATORS,
   SETUP_FEE,
   planLabel,
   priceForTier,
@@ -521,6 +522,9 @@ function AdminPanel() {
                 </select>
               </div>
             </div>
+            <p className="text-xs text-muted-foreground -mt-2">
+              Limite operatori del piano {PLAN_LABELS[studioForm.plan]}: massimo <strong>{MAX_OPERATORS[studioForm.plan]}</strong> operatori. Il sistema blocca automaticamente la creazione oltre il limite.
+            </p>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Tipo abbonamento</Label>
