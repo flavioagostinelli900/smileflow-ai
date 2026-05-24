@@ -274,6 +274,24 @@ function AdminPanel() {
     navigate({ to: "/" });
   };
 
+  const confirmDeleteStudio = async () => {
+    if (!deleteTarget) return;
+    if (deleteConfirmText !== deleteTarget.name) return;
+    setDeletingStudio(true);
+    try {
+      await deleteStudioRpc({ data: { studio_id: deleteTarget.id } });
+      toast.success(`Studio ${deleteTarget.name} eliminato con successo.`);
+      setDeleteTarget(null);
+      setDeleteConfirmText("");
+      qc.invalidateQueries({ queryKey: ["admin-studios"] });
+      qc.invalidateQueries({ queryKey: ["admin-audit"] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Errore durante l'eliminazione");
+    } finally {
+      setDeletingStudio(false);
+    }
+  };
+
   // ---- Staff dialogs ----
   const [staffOpen, setStaffOpen] = useState(false);
   const [staffEmail, setStaffEmail] = useState("");
