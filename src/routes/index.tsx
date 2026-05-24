@@ -78,13 +78,29 @@ function Dashboard() {
 
   const days = Math.max(1, Math.round((range.to.getTime() - range.from.getTime()) / 86400000) + 1);
   const scale = days / 7;
+
+  const fromIso = useMemo(() => {
+    const d = new Date(range.from); d.setHours(0, 0, 0, 0); return d.toISOString();
+  }, [range.from]);
+  const toIso = useMemo(() => {
+    const d = new Date(range.to); d.setHours(23, 59, 59, 999); return d.toISOString();
+  }, [range.to]);
+
+  const fetchRevenue = useServerFn(getDashboardRevenue);
+  const { data: revenueData } = useQuery({
+    queryKey: ["dashboard-revenue", fromIso, toIso],
+    queryFn: () => fetchRevenue({ data: { from: fromIso, to: toIso } }),
+  });
+  const realRevenue = revenueData?.total ?? 0;
+  const [breakdownOpen, setBreakdownOpen] = useState(false);
+
   const stats = {
     appts: Math.round(148 * scale),
     recovered: Math.round(62 * scale),
     calls: Math.round(37 * scale),
     msgs: Math.round(1284 * scale),
     convos: Math.round(29 * Math.max(1, scale * 0.6)),
-    revenue: (12.4 * scale).toFixed(1),
+    revenue: realRevenue >= 1000 ? `${(realRevenue / 1000).toFixed(1)}k` : realRevenue.toFixed(0),
     response: 94,
   };
 
