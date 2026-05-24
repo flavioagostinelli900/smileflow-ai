@@ -65,7 +65,7 @@ function Settings() {
     const v = [...draft.visit_types]; v[i] = { ...v[i], ...patch };
     setDraft({ ...draft, visit_types: v });
   };
-  const addVisit = () => setDraft({ ...draft, visit_types: [...draft.visit_types, { name: "Nuova visita", minutes: 30, ai_booking: false }] });
+  const addVisit = () => setDraft({ ...draft, visit_types: [...draft.visit_types, { name: "Nuova visita", minutes: 30, ai_booking: false, suitable_for: "all", avg_price: 0 }] });
   const removeVisit = (i: number) => setDraft({ ...draft, visit_types: draft.visit_types.filter((_, idx) => idx !== i) });
 
   return (
