@@ -78,7 +78,6 @@ function Dashboard() {
   }, [preset, appliedCustom]);
 
   const days = Math.max(1, Math.round((range.to.getTime() - range.from.getTime()) / 86400000) + 1);
-  const scale = days / 7;
 
   const fromIso = useMemo(() => {
     const d = new Date(range.from); d.setHours(0, 0, 0, 0); return d.toISOString();
