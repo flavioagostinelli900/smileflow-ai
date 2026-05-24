@@ -4,7 +4,7 @@ import { StatCard } from "@/components/StatCard";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar as CalendarIcon, UserCheck, PhoneIncoming, Send, MessagesSquare, Sparkles, Calendar, KeyRound, X } from "lucide-react";
+import { Calendar as CalendarIcon, UserCheck, PhoneIncoming, Send, MessagesSquare, Sparkles, Calendar, KeyRound, X, UserCog } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { useAuth } from "@/lib/useAuth";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -12,6 +12,9 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { getDashboardRevenue } from "@/lib/revenue.functions";
 import { supabase } from "@/integrations/supabase/client";
+import { useStudio } from "@/lib/useStudio";
+import { toast } from "sonner";
+import { PLAN_LABELS, MAX_OPERATORS, type PlanId } from "@/lib/plans";
 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarPicker } from "@/components/ui/calendar";
