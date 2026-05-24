@@ -130,7 +130,10 @@ function Operators() {
               </AvatarFallback>
             </Avatar>
             <h3 className="font-semibold">{o.name}</h3>
-            <p className="text-xs text-muted-foreground mb-3">{o.role ?? "—"}</p>
+            <p className="text-xs text-muted-foreground mb-2">{o.role ?? "—"}</p>
+            <Badge variant="outline" className="text-[10px] mb-3">
+              {PATIENT_GROUP_EMOJI[o.patient_group ?? "all"]} {PATIENT_GROUP_LABEL[o.patient_group ?? "all"]}
+            </Badge>
             <div className="flex flex-wrap gap-1 mb-4">
               {(o.departments ?? []).map((t) => (
                 <Badge key={t} variant="secondary" className="text-[10px]">{t}</Badge>
