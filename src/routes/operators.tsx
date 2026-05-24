@@ -55,6 +55,65 @@ function Operators() {
   const [patientGroup, setPatientGroup] = useState<PatientGroup>("all");
   const [saving, setSaving] = useState(false);
 
+  // Toggle online/offline con durata
+  const [pendingToggle, setPendingToggle] = useState<{ op: Operator; nextOnline: boolean } | null>(null);
+  const [durationMode, setDurationMode] = useState<"always" | "custom">("always");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
+
+  // Auto-revert: quando status_until è passato, ribalta lo stato
+  useEffect(() => {
+    if (!ops.length) return;
+    const now = Date.now();
+    const expired = ops.filter((o) => {
+      const u = (o as any).status_until as string | null | undefined;
+      return u && new Date(u).getTime() <= now;
+    });
+    if (!expired.length) return;
+    (async () => {
+      for (const o of expired) {
+        await supabase.from("operators").update({ online: !o.online, status_until: null }).eq("id", o.id);
+      }
+      qc.invalidateQueries({ queryKey: ["operators"] });
+    })();
+    const next = ops
+      .map((o) => (o as any).status_until as string | null | undefined)
+      .filter(Boolean)
+      .map((u) => new Date(u!).getTime())
+      .filter((t) => t > now);
+    if (!next.length) return;
+    const soonest = Math.min(...next);
+    const timeout = setTimeout(() => qc.invalidateQueries({ queryKey: ["operators"] }), Math.max(1000, soonest - now + 500));
+    return () => clearTimeout(timeout);
+  }, [ops, qc]);
+
+  const openToggleDialog = (op: Operator, nextOnline: boolean) => {
+    setPendingToggle({ op, nextOnline });
+    setDurationMode("always");
+    setDateRange(undefined);
+  };
+
+  const confirmToggle = async () => {
+    if (!pendingToggle) return;
+    const { op, nextOnline } = pendingToggle;
+    let status_until: string | null = null;
+    if (durationMode === "custom") {
+      if (!dateRange?.to) {
+        toast.error("Seleziona una data di fine");
+        return;
+      }
+      const end = new Date(dateRange.to);
+      end.setHours(23, 59, 59, 999);
+      status_until = end.toISOString();
+    }
+    const { error } = await supabase.from("operators").update({ online: nextOnline, status_until }).eq("id", op.id);
+    if (error) return toast.error(error.message);
+    toast.success(
+      `${nextOnline ? "Online" : "Offline"}${status_until ? ` fino al ${format(new Date(status_until), "d MMM yyyy", { locale: it })}` : " (sempre)"}`,
+    );
+    setPendingToggle(null);
+    qc.invalidateQueries({ queryKey: ["operators"] });
+  };
+
   if (permissionsLoading || studioLoading) {
     return <AppLayout><div className="flex items-center gap-2 text-sm text-muted-foreground"><Sparkles className="size-4 animate-pulse text-primary" />Caricamento…</div></AppLayout>;
   }
