@@ -463,3 +463,99 @@ function PasswordChangeBanner() {
   );
 }
 
+function StudioHero({
+  stats,
+  onOpenBreakdown,
+}: {
+  stats: { appts: number; recovered: number; response: number; revenue: string };
+  onOpenBreakdown: () => void;
+}) {
+  const { user } = useAuth();
+  const { data: settings } = useQuery({
+    queryKey: ["studio-settings"],
+    queryFn: async () => {
+      const { data } = await supabase.from("studio_settings").select("name").limit(1).maybeSingle();
+      return data as { name: string } | null;
+    },
+  });
+  const studioName = settings?.name || user?.user_metadata?.full_name || "il tuo studio";
+  return (
+    <div className="rounded-2xl bg-gradient-hero text-primary-foreground p-6 md:p-8 mb-4 shadow-elevated relative overflow-hidden">
+      <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_20%_20%,white,transparent_40%)]" />
+      <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="min-w-0">
+          <div className="inline-flex items-center gap-2 text-xs bg-white/15 backdrop-blur px-3 py-1 rounded-full mb-3">
+            <Sparkles className="size-3" /> AI Assistant attivo
+          </div>
+          <h2 className="text-xl md:text-3xl font-semibold tracking-tight">
+            Benvenuto, {studioName}
+          </h2>
+          <p className="text-primary-foreground/80 mt-1 text-sm">
+            Nel periodo selezionato l'AI ha generato {stats.appts} prenotazioni e recuperato {stats.recovered} pazienti.
+          </p>
+        </div>
+        <div className="flex gap-6 shrink-0">
+          <div>
+            <div className="text-2xl md:text-3xl font-semibold">{stats.response}%</div>
+            <div className="text-xs text-primary-foreground/70">Tasso risposta</div>
+          </div>
+          <button
+            onClick={onOpenBreakdown}
+            className="text-left rounded-lg px-2 -mx-2 py-1 -my-1 hover:bg-white/10 transition-colors"
+            title="Vedi breakdown fatturato"
+          >
+            <div className="text-2xl md:text-3xl font-semibold">€{stats.revenue}</div>
+            <div className="text-xs text-primary-foreground/70">Recuperato</div>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function OperatorsOnlineCard() {
+  const { data } = useQuery({
+    queryKey: ["operators"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("operators").select("id, online");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  const total = data?.length ?? 0;
+  const online = data?.filter((o) => o.online).length ?? 0;
+  if (total === 0) return null;
+  return (
+    <Card className="p-4 mb-4 flex items-center gap-3">
+      <div className="size-10 rounded-lg flex items-center justify-center bg-success/15 text-success">
+        <UserCog className="size-5" />
+      </div>
+      <div className="flex-1">
+        <div className="text-sm font-medium">Operatori attivi oggi: {online}/{total}</div>
+        <div className="text-xs text-muted-foreground">Stato online in tempo reale</div>
+      </div>
+      <Link to="/operators" className="text-xs text-primary hover:underline">Gestisci</Link>
+    </Card>
+  );
+}
+
+const PLAN_NOTIFY_KEY = "dentai_last_seen_plan";
+function PlanChangeNotifier() {
+  const { plan, planLabel: pl, studio } = useStudio();
+  useEffect(() => {
+    if (!studio || typeof window === "undefined") return;
+    const prev = localStorage.getItem(PLAN_NOTIFY_KEY);
+    if (prev && prev !== plan) {
+      const max = MAX_OPERATORS[plan as PlanId];
+      const tier = studio.message_tier?.toLocaleString("it-IT") ?? "—";
+      toast.success(
+        `Il tuo piano è stato aggiornato a ${pl}. Hai ora ${tier} messaggi/mese e puoi gestire fino a ${max} operatori.`,
+        { duration: 8000 },
+      );
+    }
+    localStorage.setItem(PLAN_NOTIFY_KEY, plan);
+  }, [plan, pl, studio]);
+  return null;
+}
+
+
