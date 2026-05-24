@@ -27,6 +27,7 @@ import {
   PLAN_IDS as PLAN_OPTIONS,
   PLAN_LABELS,
   MESSAGE_TIERS,
+  MAX_OPERATORS,
   SETUP_FEE,
   planLabel,
   priceForTier,
