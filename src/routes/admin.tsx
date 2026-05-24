@@ -434,6 +434,17 @@ function AdminPanel() {
                         <Button size="sm" variant="ghost" onClick={() => toggleStatus(s)}>
                           {s.status === "active" ? <Pause className="size-3.5" /> : <Play className="size-3.5" />}
                         </Button>
+                        {isSuperAdmin && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => { setDeleteTarget(s); setDeleteConfirmText(""); }}
+                            title="Elimina studio"
+                          >
+                            <Trash2 className="size-3.5" />
+                          </Button>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
