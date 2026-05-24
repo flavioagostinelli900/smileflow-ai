@@ -57,6 +57,7 @@ export type Database = {
           source: string | null
           starts_at: string
           status: string
+          studio_id: string | null
           visit_type: string
         }
         Insert: {
@@ -69,6 +70,7 @@ export type Database = {
           source?: string | null
           starts_at: string
           status?: string
+          studio_id?: string | null
           visit_type: string
         }
         Update: {
@@ -81,6 +83,7 @@ export type Database = {
           source?: string | null
           starts_at?: string
           status?: string
+          studio_id?: string | null
           visit_type?: string
         }
         Relationships: [
@@ -152,6 +155,7 @@ export type Database = {
           operator_id: string | null
           phone: string
           status: string
+          studio_id: string | null
           tags: string[]
           updated_at: string
         }
@@ -170,6 +174,7 @@ export type Database = {
           operator_id?: string | null
           phone: string
           status?: string
+          studio_id?: string | null
           tags?: string[]
           updated_at?: string
         }
@@ -188,6 +193,7 @@ export type Database = {
           operator_id?: string | null
           phone?: string
           status?: string
+          studio_id?: string | null
           tags?: string[]
           updated_at?: string
         }
@@ -211,6 +217,7 @@ export type Database = {
           internal_notes: string | null
           last_message_at: string | null
           status: string
+          studio_id: string | null
           tags: string[]
         }
         Insert: {
@@ -222,6 +229,7 @@ export type Database = {
           internal_notes?: string | null
           last_message_at?: string | null
           status?: string
+          studio_id?: string | null
           tags?: string[]
         }
         Update: {
@@ -233,6 +241,7 @@ export type Database = {
           internal_notes?: string | null
           last_message_at?: string | null
           status?: string
+          studio_id?: string | null
           tags?: string[]
         }
         Relationships: [
@@ -262,6 +271,7 @@ export type Database = {
           name: string
           steps: number
           steps_config: Json
+          studio_id: string | null
           target: string
           trigger_type: string
         }
@@ -274,6 +284,7 @@ export type Database = {
           name: string
           steps?: number
           steps_config?: Json
+          studio_id?: string | null
           target: string
           trigger_type?: string
         }
@@ -286,6 +297,7 @@ export type Database = {
           name?: string
           steps?: number
           steps_config?: Json
+          studio_id?: string | null
           target?: string
           trigger_type?: string
         }
@@ -300,6 +312,7 @@ export type Database = {
           discount_percent: number | null
           expires_at: string | null
           id: string
+          studio_id: string | null
           title: string
           used: boolean | null
         }
@@ -311,6 +324,7 @@ export type Database = {
           discount_percent?: number | null
           expires_at?: string | null
           id?: string
+          studio_id?: string | null
           title: string
           used?: boolean | null
         }
@@ -322,6 +336,7 @@ export type Database = {
           discount_percent?: number | null
           expires_at?: string | null
           id?: string
+          studio_id?: string | null
           title?: string
           used?: boolean | null
         }
@@ -342,6 +357,7 @@ export type Database = {
           created_at: string
           id: string
           sender: string
+          studio_id: string | null
         }
         Insert: {
           content: string
@@ -349,6 +365,7 @@ export type Database = {
           created_at?: string
           id?: string
           sender: string
+          studio_id?: string | null
         }
         Update: {
           content?: string
@@ -356,6 +373,7 @@ export type Database = {
           created_at?: string
           id?: string
           sender?: string
+          studio_id?: string | null
         }
         Relationships: [
           {
@@ -377,6 +395,7 @@ export type Database = {
           id: string
           phone: string
           status: string
+          studio_id: string | null
         }
         Insert: {
           auto_message_sent?: boolean | null
@@ -387,6 +406,7 @@ export type Database = {
           id?: string
           phone: string
           status?: string
+          studio_id?: string | null
         }
         Update: {
           auto_message_sent?: boolean | null
@@ -397,6 +417,7 @@ export type Database = {
           id?: string
           phone?: string
           status?: string
+          studio_id?: string | null
         }
         Relationships: [
           {
@@ -498,6 +519,7 @@ export type Database = {
           patient_group: string
           role: string | null
           status_until: string | null
+          studio_id: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -509,6 +531,7 @@ export type Database = {
           patient_group?: string
           role?: string | null
           status_until?: string | null
+          studio_id?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -520,6 +543,7 @@ export type Database = {
           patient_group?: string
           role?: string | null
           status_until?: string | null
+          studio_id?: string | null
         }
         Relationships: []
       }
@@ -531,6 +555,7 @@ export type Database = {
           id: string
           scheduled_for: string | null
           status: string
+          studio_id: string | null
           total: number
         }
         Insert: {
@@ -540,6 +565,7 @@ export type Database = {
           id?: string
           scheduled_for?: string | null
           status?: string
+          studio_id?: string | null
           total?: number
         }
         Update: {
@@ -549,6 +575,7 @@ export type Database = {
           id?: string
           scheduled_for?: string | null
           status?: string
+          studio_id?: string | null
           total?: number
         }
         Relationships: []
@@ -586,6 +613,7 @@ export type Database = {
           scheduled_at: string
           sent_at: string | null
           status: string
+          studio_id: string | null
           type: string
         }
         Insert: {
@@ -599,6 +627,7 @@ export type Database = {
           scheduled_at: string
           sent_at?: string | null
           status?: string
+          studio_id?: string | null
           type: string
         }
         Update: {
@@ -612,6 +641,7 @@ export type Database = {
           scheduled_at?: string
           sent_at?: string | null
           status?: string
+          studio_id?: string | null
           type?: string
         }
         Relationships: []
@@ -625,6 +655,7 @@ export type Database = {
           name: string
           opening_hours: Json
           phone: string | null
+          studio_id: string | null
           updated_at: string
           visit_types: Json
           whatsapp_ai: string | null
@@ -639,6 +670,7 @@ export type Database = {
           name?: string
           opening_hours?: Json
           phone?: string | null
+          studio_id?: string | null
           updated_at?: string
           visit_types?: Json
           whatsapp_ai?: string | null
@@ -653,6 +685,7 @@ export type Database = {
           name?: string
           opening_hours?: Json
           phone?: string | null
+          studio_id?: string | null
           updated_at?: string
           visit_types?: Json
           whatsapp_ai?: string | null
@@ -800,6 +833,7 @@ export type Database = {
           rule_id: string | null
           sent_at: string
           status: string
+          studio_id: string | null
           treatment: string
           used_at: string | null
         }
@@ -814,6 +848,7 @@ export type Database = {
           rule_id?: string | null
           sent_at?: string
           status?: string
+          studio_id?: string | null
           treatment: string
           used_at?: string | null
         }
@@ -828,6 +863,7 @@ export type Database = {
           rule_id?: string | null
           sent_at?: string
           status?: string
+          studio_id?: string | null
           treatment?: string
           used_at?: string | null
         }
@@ -841,6 +877,7 @@ export type Database = {
           id: string
           message_template: string | null
           name: string
+          studio_id: string | null
           threshold: number
           treatment: string
           trigger_type: string
@@ -853,6 +890,7 @@ export type Database = {
           id?: string
           message_template?: string | null
           name: string
+          studio_id?: string | null
           threshold?: number
           treatment: string
           trigger_type: string
@@ -865,6 +903,7 @@ export type Database = {
           id?: string
           message_template?: string | null
           name?: string
+          studio_id?: string | null
           threshold?: number
           treatment?: string
           trigger_type?: string
@@ -901,6 +940,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_access_studio: { Args: { _studio_id: string }; Returns: boolean }
       can_manage_any: { Args: { _user_id: string }; Returns: boolean }
       can_manage_studio: {
         Args: { _studio_id: string; _user_id: string }
@@ -910,6 +950,11 @@ export type Database = {
       compute_subscription_expiry: {
         Args: { _cycle: string; _start: string }
         Returns: string
+      }
+      current_user_studio_id: { Args: never; Returns: string }
+      delete_studio_cascade: {
+        Args: { _studio_id: string }
+        Returns: undefined
       }
       has_role: {
         Args: {
