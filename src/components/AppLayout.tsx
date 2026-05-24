@@ -21,6 +21,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { usePermissions } from "@/lib/usePermissions";
 import { ImpersonationBar } from "@/components/ImpersonationBar";
 import { SupportWidget } from "@/components/SupportWidget";
+import { PWAInstallBanner } from "@/components/PWAInstallBanner";
 import { useState } from "react";
 
 const nav = [
