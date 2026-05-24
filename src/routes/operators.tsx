@@ -11,7 +11,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Calendar, Sparkles, AlertTriangle, Crown } from "lucide-react";
+import { Plus, Calendar as CalendarIcon, Sparkles, AlertTriangle, Crown, Clock } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { it } from "date-fns/locale";
+import { cn } from "@/lib/utils";
+import { useEffect } from "react";
+import type { DateRange } from "react-day-picker";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, type Operator, type PatientGroup } from "@/lib/api";
 import { PATIENT_GROUP_EMOJI, PATIENT_GROUP_LABEL } from "@/lib/age";
@@ -47,6 +54,65 @@ function Operators() {
   const [role, setRole] = useState("");
   const [patientGroup, setPatientGroup] = useState<PatientGroup>("all");
   const [saving, setSaving] = useState(false);
+
+  // Toggle online/offline con durata
+  const [pendingToggle, setPendingToggle] = useState<{ op: Operator; nextOnline: boolean } | null>(null);
+  const [durationMode, setDurationMode] = useState<"always" | "custom">("always");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
+
+  // Auto-revert: quando status_until è passato, ribalta lo stato
+  useEffect(() => {
+    if (!ops.length) return;
+    const now = Date.now();
+    const expired = ops.filter((o) => {
+      const u = (o as any).status_until as string | null | undefined;
+      return u && new Date(u).getTime() <= now;
+    });
+    if (!expired.length) return;
+    (async () => {
+      for (const o of expired) {
+        await supabase.from("operators").update({ online: !o.online, status_until: null }).eq("id", o.id);
+      }
+      qc.invalidateQueries({ queryKey: ["operators"] });
+    })();
+    const next = ops
+      .map((o) => (o as any).status_until as string | null | undefined)
+      .filter(Boolean)
+      .map((u) => new Date(u!).getTime())
+      .filter((t) => t > now);
+    if (!next.length) return;
+    const soonest = Math.min(...next);
+    const timeout = setTimeout(() => qc.invalidateQueries({ queryKey: ["operators"] }), Math.max(1000, soonest - now + 500));
+    return () => clearTimeout(timeout);
+  }, [ops, qc]);
+
+  const openToggleDialog = (op: Operator, nextOnline: boolean) => {
+    setPendingToggle({ op, nextOnline });
+    setDurationMode("always");
+    setDateRange(undefined);
+  };
+
+  const confirmToggle = async () => {
+    if (!pendingToggle) return;
+    const { op, nextOnline } = pendingToggle;
+    let status_until: string | null = null;
+    if (durationMode === "custom") {
+      if (!dateRange?.to) {
+        toast.error("Seleziona una data di fine");
+        return;
+      }
+      const end = new Date(dateRange.to);
+      end.setHours(23, 59, 59, 999);
+      status_until = end.toISOString();
+    }
+    const { error } = await supabase.from("operators").update({ online: nextOnline, status_until }).eq("id", op.id);
+    if (error) return toast.error(error.message);
+    toast.success(
+      `${nextOnline ? "Online" : "Offline"}${status_until ? ` fino al ${format(new Date(status_until), "d MMM yyyy", { locale: it })}` : " (sempre)"}`,
+    );
+    setPendingToggle(null);
+    qc.invalidateQueries({ queryKey: ["operators"] });
+  };
 
   if (permissionsLoading || studioLoading) {
     return <AppLayout><div className="flex items-center gap-2 text-sm text-muted-foreground"><Sparkles className="size-4 animate-pulse text-primary" />Caricamento…</div></AppLayout>;
@@ -141,28 +207,104 @@ function Operators() {
               ))}
             </div>
             <div className="pt-3 border-t flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <Switch
                   checked={!!o.online}
-                  onCheckedChange={async (checked) => {
-                    const { error } = await supabase.from("operators").update({ online: checked }).eq("id", o.id);
-                    if (error) return toast.error(error.message);
-                    toast.success(checked ? "Operatore Online" : "Operatore Offline");
-                    qc.invalidateQueries({ queryKey: ["operators"] });
+                  onCheckedChange={(checked) => {
+                    if (!canManage) return;
+                    openToggleDialog(o, checked);
                   }}
+                  disabled={!canManage}
                   aria-label="Toggle online"
                 />
                 <Badge className={o.online ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"}>
                   ● {o.online ? "🟢 Online" : "🔴 Offline"}
                 </Badge>
+                {(o as any).status_until && (
+                  <Badge variant="outline" className="text-[10px] gap-1">
+                    <Clock className="size-3" />
+                    fino al {format(new Date((o as any).status_until), "d MMM", { locale: it })}
+                  </Badge>
+                )}
               </div>
               <Link to="/operators/$operatorId" params={{ operatorId: o.id }}>
-                <Button variant="outline" size="sm"><Calendar className="size-3.5 mr-1" />Apri</Button>
+                <Button variant="outline" size="sm"><CalendarIcon className="size-3.5 mr-1" />Apri</Button>
               </Link>
             </div>
           </Card>
         ))}
       </div>
+
+      {/* Dialog scelta durata stato */}
+      <Dialog open={!!pendingToggle} onOpenChange={(o) => !o && setPendingToggle(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>
+              Imposta {pendingToggle?.nextOnline ? "🟢 Online" : "🔴 Offline"}
+            </DialogTitle>
+            <DialogDescription>
+              {pendingToggle?.op.name} — per quanto tempo?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant={durationMode === "always" ? "default" : "outline"}
+                onClick={() => setDurationMode("always")}
+                className={durationMode === "always" ? "bg-gradient-primary" : ""}
+              >
+                Sempre
+              </Button>
+              <Button
+                variant={durationMode === "custom" ? "default" : "outline"}
+                onClick={() => setDurationMode("custom")}
+                className={durationMode === "custom" ? "bg-gradient-primary" : ""}
+              >
+                Personalizzato
+              </Button>
+            </div>
+            {durationMode === "custom" && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !dateRange && "text-muted-foreground")}>
+                    <CalendarIcon className="mr-2 size-4" />
+                    {dateRange?.from ? (
+                      dateRange.to ? (
+                        <>{format(dateRange.from, "d MMM", { locale: it })} – {format(dateRange.to, "d MMM yyyy", { locale: it })}</>
+                      ) : (
+                        format(dateRange.from, "d MMM yyyy", { locale: it })
+                      )
+                    ) : (
+                      <span>Seleziona periodo</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="range"
+                    selected={dateRange}
+                    onSelect={setDateRange}
+                    numberOfMonths={1}
+                    locale={it}
+                    disabled={(d) => d < new Date(new Date().setHours(0, 0, 0, 0))}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+            )}
+            {durationMode === "custom" && dateRange?.to && (
+              <p className="text-xs text-muted-foreground">
+                Al termine ({format(dateRange.to, "d MMM yyyy", { locale: it })}) tornerà automaticamente {pendingToggle?.nextOnline ? "Offline" : "Online"}.
+              </p>
+            )}
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setPendingToggle(null)}>Annulla</Button>
+            <Button onClick={confirmToggle} className="bg-gradient-primary">Conferma</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={newOpen} onOpenChange={setNewOpen}>
         <DialogContent className="max-w-sm">

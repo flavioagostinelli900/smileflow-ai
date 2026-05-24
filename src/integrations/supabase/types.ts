@@ -497,6 +497,7 @@ export type Database = {
           online: boolean | null
           patient_group: string
           role: string | null
+          status_until: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -507,6 +508,7 @@ export type Database = {
           online?: boolean | null
           patient_group?: string
           role?: string | null
+          status_until?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -517,6 +519,7 @@ export type Database = {
           online?: boolean | null
           patient_group?: string
           role?: string | null
+          status_until?: string | null
         }
         Relationships: []
       }
