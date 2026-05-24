@@ -156,6 +156,11 @@ function ClientsList() {
                     </div>
                   </td>
                   <td className="px-4 py-3"><div className="text-xs">{c.phone}</div><div className="text-xs text-muted-foreground">{c.email}</div></td>
+                  <td className="px-4 py-3">
+                    <Badge variant="outline" className="text-[10px]">
+                      {AGE_GROUP_EMOJI[c.age_group ?? "unspecified"]} {AGE_GROUP_LABEL[c.age_group ?? "unspecified"]}
+                    </Badge>
+                  </td>
                   <td className="px-4 py-3"><Badge variant="outline">{c.family_id ?? "—"}</Badge></td>
                   <td className="px-4 py-3"><Badge variant="secondary">{c.department ?? "—"}</Badge></td>
                   <td className="px-4 py-3 text-muted-foreground text-xs">{c.last_visit ?? "—"}</td>
@@ -166,7 +171,7 @@ function ClientsList() {
                   </td>
                 </tr>
               ))}
-              {filtered.length === 0 && <tr><td colSpan={6} className="px-4 py-12 text-center text-muted-foreground text-sm">Nessun paziente trovato</td></tr>}
+              {filtered.length === 0 && <tr><td colSpan={7} className="px-4 py-12 text-center text-muted-foreground text-sm">Nessun paziente trovato</td></tr>}
             </tbody>
           </table>
         </div>
