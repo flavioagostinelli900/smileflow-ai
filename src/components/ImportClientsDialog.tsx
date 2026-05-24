@@ -135,6 +135,7 @@ export function ImportClientsDialog({ open, onOpenChange, onDone }: { open: bool
         last_name: r.last_name,
         phone: r.phone,
         last_visit: r.last_visit,
+        birth_date: r.birth_date,
         tags: r.tag ? [r.tag] : [],
         status: "active",
       }));
