@@ -9,9 +9,11 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Calendar, Sparkles, AlertTriangle, Crown } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, type Operator } from "@/lib/api";
+import { api, type Operator, type PatientGroup } from "@/lib/api";
+import { PATIENT_GROUP_EMOJI, PATIENT_GROUP_LABEL } from "@/lib/age";
 import { usePermissions } from "@/lib/usePermissions";
 import { useStudio } from "@/lib/useStudio";
 import { ReadOnlyBanner } from "@/components/ReadOnlyBanner";
