@@ -197,38 +197,9 @@ function Dashboard() {
   return (
     <AppLayout>
       <PasswordChangeBanner />
+      <PlanChangeNotifier />
       {/* Hero strip */}
-      <div className="rounded-2xl bg-gradient-hero text-primary-foreground p-6 md:p-8 mb-4 shadow-elevated relative overflow-hidden">
-
-        <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_20%_20%,white,transparent_40%)]" />
-        <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="min-w-0">
-            <div className="inline-flex items-center gap-2 text-xs bg-white/15 backdrop-blur px-3 py-1 rounded-full mb-3">
-              <Sparkles className="size-3" /> AI Assistant attivo
-            </div>
-            <h2 className="text-xl md:text-3xl font-semibold tracking-tight">
-              Benvenuto, Studio Dentistico Rossi
-            </h2>
-            <p className="text-primary-foreground/80 mt-1 text-sm">
-              Nel periodo selezionato l'AI ha generato {stats.appts} prenotazioni e recuperato {stats.recovered} pazienti.
-            </p>
-          </div>
-          <div className="flex gap-6 shrink-0">
-            <div>
-              <div className="text-2xl md:text-3xl font-semibold">{stats.response}%</div>
-              <div className="text-xs text-primary-foreground/70">Tasso risposta</div>
-            </div>
-            <button
-              onClick={() => setBreakdownOpen(true)}
-              className="text-left rounded-lg px-2 -mx-2 py-1 -my-1 hover:bg-white/10 transition-colors"
-              title="Vedi breakdown fatturato"
-            >
-              <div className="text-2xl md:text-3xl font-semibold">€{stats.revenue}</div>
-              <div className="text-xs text-primary-foreground/70">Recuperato</div>
-            </button>
-          </div>
-        </div>
-      </div>
+      <StudioHero stats={stats} onOpenBreakdown={() => setBreakdownOpen(true)} />
 
       {/* Date pill selector */}
       <div className="flex justify-end mb-6">
@@ -293,13 +264,16 @@ function Dashboard() {
         </div>
       </div>
 
+      {/* Operators online widget */}
+      <OperatorsOnlineCard />
+
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4 mb-8">
-        <StatCard label="Appuntamenti generati" value={String(stats.appts)} delta={12} icon={Calendar} tone="primary" />
-        <StatCard label="Clienti recuperati" value={String(stats.recovered)} delta={8} icon={UserCheck} tone="success" />
-        <StatCard label="Chiamate recuperate" value={String(stats.calls)} delta={-3} icon={PhoneIncoming} tone="warning" />
-        <StatCard label="Messaggi inviati" value={stats.msgs.toLocaleString("it-IT")} delta={22} icon={Send} tone="info" />
-        <StatCard label="Conversazioni attive" value={String(stats.convos)} delta={5} icon={MessagesSquare} />
+        <StatCard label="Appuntamenti generati" value={String(stats.appts)} icon={Calendar} tone="primary" />
+        <StatCard label="Clienti recuperati" value={String(stats.recovered)} icon={UserCheck} tone="success" />
+        <StatCard label="Chiamate recuperate" value={String(stats.calls)} icon={PhoneIncoming} tone="warning" />
+        <StatCard label="Messaggi inviati" value={stats.msgs.toLocaleString("it-IT")} icon={Send} tone="info" />
+        <StatCard label="Conversazioni attive" value={String(stats.convos)} icon={MessagesSquare} />
       </div>
 
       {/* Charts */}
