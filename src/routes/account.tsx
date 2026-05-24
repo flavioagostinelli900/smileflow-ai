@@ -402,24 +402,7 @@ function SubscriptionSection() {
         <div className="h-2 bg-muted rounded-full overflow-hidden">
           <div className={`h-full ${barColor} transition-all`} style={{ width: `${pct}%` }} />
         </div>
-        <div>
-          <div className="text-xs text-muted-foreground mb-2">Fasce disponibili per il piano {PLAN_LABELS[plan]}</div>
-          <div className="grid sm:grid-cols-3 gap-2">
-            {MESSAGE_TIERS[plan].map((t) => {
-              const active = t === tier;
-              return (
-                <div
-                  key={t}
-                  className={`p-3 rounded-lg border text-sm ${active ? "border-primary bg-primary/5" : "border-border"}`}
-                >
-                  <div className="font-medium">{t.toLocaleString("it-IT")} msg</div>
-                  <div className="text-xs text-muted-foreground">€{MESSAGE_TIER_PRICES[plan][t]}/mese</div>
-                  {active && <Badge className="mt-1 bg-primary/15 text-primary hover:bg-primary/15">Attiva</Badge>}
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        <UpgradeMessagesSection plan={plan} currentTier={tier} userId={user?.id} />
         <BuyMessagesDialog />
       </Card>
 
