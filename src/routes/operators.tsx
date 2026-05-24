@@ -44,6 +44,7 @@ function Operators() {
   const [limitOpen, setLimitOpen] = useState(false);
   const [name, setName] = useState("");
   const [role, setRole] = useState("");
+  const [patientGroup, setPatientGroup] = useState<PatientGroup>("all");
   const [saving, setSaving] = useState(false);
 
   if (permissionsLoading || studioLoading) {
