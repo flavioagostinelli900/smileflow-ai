@@ -9,6 +9,7 @@ import {
 } from "@tanstack/react-router";
 
 import appCss from "../styles.css?url";
+import { useRealtimeSync } from "@/lib/useRealtimeSync";
 
 function NotFoundComponent() {
   return (
@@ -118,7 +119,13 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <RealtimeBridge />
       <Outlet />
     </QueryClientProvider>
   );
+}
+
+function RealtimeBridge() {
+  useRealtimeSync();
+  return null;
 }
