@@ -122,7 +122,7 @@ function Bookings() {
               <SelectItem value={ALL}>Tutti gli operatori</SelectItem>
               {ops.map((o) => (
                 <SelectItem key={o.id} value={o.id}>
-                  {PATIENT_GROUP_EMOJI[o.patient_group ?? "all"]} {o.name} — {PATIENT_GROUP_LABEL[o.patient_group ?? "all"]}
+                  {o.online ? "🟢" : "🔴"} {PATIENT_GROUP_EMOJI[o.patient_group ?? "all"]} {o.name}{!o.online && " — Non disponibile"}
                 </SelectItem>
               ))}
             </SelectContent>
