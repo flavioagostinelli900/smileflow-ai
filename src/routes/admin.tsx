@@ -649,6 +649,69 @@ function AdminPanel() {
 
       {/* ---------- CREDENZIALI APPENA CREATE ---------- */}
       <CredentialsDialog data={credentials} onClose={() => setCredentials(null)} />
+
+      {/* ---------- DIALOG ELIMINAZIONE STUDIO ---------- */}
+      <Dialog open={!!deleteTarget} onOpenChange={(o) => { if (!o) { setDeleteTarget(null); setDeleteConfirmText(""); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="size-4" /> Elimina studio {deleteTarget?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 space-y-1.5">
+              <p className="font-medium text-destructive">Questa azione eliminerà definitivamente:</p>
+              <ul className="list-disc pl-5 text-muted-foreground text-xs space-y-0.5">
+                <li>Tutti i dati dei pazienti</li>
+                <li>Tutti gli appuntamenti</li>
+                <li>Tutte le conversazioni e messaggi</li>
+                <li>Tutti i workflow, reminder, offerte upsell e premi fedeltà</li>
+                <li>L'account di accesso dello studio</li>
+              </ul>
+              <p className="text-destructive font-medium text-xs pt-1">
+                Azione irreversibile — i dati non potranno essere recuperati.
+              </p>
+            </div>
+            <div className="rounded-md border bg-muted/30 p-3 space-y-2">
+              <p className="text-xs text-muted-foreground">
+                Vuoi <strong>sospendere</strong> lo studio invece di eliminarlo? La sospensione blocca l'accesso ma conserva tutti i dati.
+              </p>
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-full"
+                onClick={() => { if (deleteTarget) { toggleStatus(deleteTarget); setDeleteTarget(null); setDeleteConfirmText(""); } }}
+              >
+                <Pause className="size-3.5 mr-1.5" /> Sospendi invece di eliminare
+              </Button>
+            </div>
+            <div>
+              <Label className="text-xs">
+                Scrivi <strong>{deleteTarget?.name}</strong> per confermare
+              </Label>
+              <Input
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder={deleteTarget?.name}
+                autoFocus
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => { setDeleteTarget(null); setDeleteConfirmText(""); }}>
+              Annulla
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={!deleteTarget || deleteConfirmText !== deleteTarget.name || deletingStudio}
+              onClick={confirmDeleteStudio}
+            >
+              <Trash2 className="size-3.5 mr-1.5" />
+              {deletingStudio ? "Eliminazione…" : "Elimina definitivamente"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       </TooltipProvider>
     </AppLayout>
   );
