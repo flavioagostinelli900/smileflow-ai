@@ -10,6 +10,7 @@ import {
 import { Plus, Clock, Users } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { api, type Operator } from "@/lib/api";
+import { PATIENT_GROUP_EMOJI, PATIENT_GROUP_LABEL } from "@/lib/age";
 
 export const Route = createFileRoute("/bookings")({
   component: Bookings,
@@ -103,7 +104,9 @@ function Bookings() {
             <SelectContent>
               <SelectItem value={ALL}>Tutti gli operatori</SelectItem>
               {ops.map((o) => (
-                <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>
+                <SelectItem key={o.id} value={o.id}>
+                  {PATIENT_GROUP_EMOJI[o.patient_group ?? "all"]} {o.name} — {PATIENT_GROUP_LABEL[o.patient_group ?? "all"]}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>

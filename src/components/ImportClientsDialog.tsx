@@ -19,6 +19,7 @@ type Row = {
   last_name: string;
   phone: string;
   last_visit: string | null;
+  birth_date: string | null;
   notes: string;
   tag?: string;
 };
@@ -49,7 +50,8 @@ const parseDate = (v: unknown): string | null => {
 const normalizeRow = (raw: Record<string, unknown>): Row | null => {
   const nameKey = findKey(raw, ["nome", "name"]);
   const phoneKey = findKey(raw, ["telefono", "numero", "phone", "cellulare"]);
-  const dateKey = findKey(raw, ["ultimavisita", "lastvisit", "datavisita", "data"]);
+  const dateKey = findKey(raw, ["ultimavisita", "lastvisit", "datavisita"]);
+  const birthKey = findKey(raw, ["datanascita", "nascita", "birthdate", "birth", "dob"]);
   const notesKey = findKey(raw, ["note", "notes", "appunti"]);
   if (!nameKey || !phoneKey) return null;
   const fullName = String(raw[nameKey] ?? "").trim();
@@ -59,6 +61,7 @@ const normalizeRow = (raw: Record<string, unknown>): Row | null => {
     last_name: rest.join(" "),
     phone: String(raw[phoneKey] ?? "").trim(),
     last_visit: parseDate(raw[dateKey ?? ""]),
+    birth_date: birthKey ? parseDate(raw[birthKey]) : null,
     notes: notesKey ? String(raw[notesKey] ?? "").trim() : "",
   };
 };
@@ -132,6 +135,7 @@ export function ImportClientsDialog({ open, onOpenChange, onDone }: { open: bool
         last_name: r.last_name,
         phone: r.phone,
         last_visit: r.last_visit,
+        birth_date: r.birth_date,
         tags: r.tag ? [r.tag] : [],
         status: "active",
       }));
@@ -211,7 +215,7 @@ export function ImportClientsDialog({ open, onOpenChange, onDone }: { open: bool
             <Card className="p-8 border-dashed border-2 text-center">
               <Upload className="size-10 mx-auto mb-3 text-muted-foreground" />
               <div className="text-sm font-medium mb-1">Carica file Excel (.xlsx) o CSV</div>
-              <div className="text-xs text-muted-foreground mb-4">Colonne richieste: Nome, Numero telefono, Data ultima visita, Note</div>
+              <div className="text-xs text-muted-foreground mb-4">Colonne supportate: Nome, Numero telefono, Data ultima visita, Data di nascita (opzionale), Note</div>
               <Input type="file" accept=".xlsx,.xls,.csv" onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} className="max-w-xs mx-auto" />
             </Card>
             {rows.length > 0 && (

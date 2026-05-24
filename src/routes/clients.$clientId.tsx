@@ -13,6 +13,7 @@ import type { Client, Appointment, Conversation, FollowupSequence, Operator } fr
 import { evaluateUpsell, nextEligibleRule, type UpsellRule, type UpsellOffer } from "@/lib/upsell";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { AGE_GROUP_EMOJI, AGE_GROUP_LABEL, computeAge } from "@/lib/age";
 
 export const Route = createFileRoute("/clients/$clientId")({
   component: ClientDetail,
@@ -114,7 +115,26 @@ function ClientDetail() {
               {client.family_id && <span className="flex items-center gap-1.5"><UsersIcon className="size-3.5" />Famiglia {client.family_id}</span>}
               <span className="text-xs font-mono opacity-60">ID {client.id.slice(0, 8)}</span>
             </div>
-            <div className="mt-3 flex flex-wrap gap-1.5 items-center">
+            <div className="mt-3 flex flex-wrap gap-2 items-center">
+              <Badge variant="outline" className="text-[11px]">
+                {AGE_GROUP_EMOJI[client.age_group ?? "unspecified"]} {AGE_GROUP_LABEL[client.age_group ?? "unspecified"]}
+                {client.birth_date && computeAge(client.birth_date) != null && <span className="ml-1 opacity-70">· {computeAge(client.birth_date)} anni</span>}
+              </Badge>
+              <label className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                Data nascita:
+                <Input
+                  type="date"
+                  value={client.birth_date ?? ""}
+                  onChange={async (e) => {
+                    await supabase.from("clients").update({ birth_date: e.target.value || null }).eq("id", clientId);
+                    qc.invalidateQueries({ queryKey: ["client", clientId] });
+                    qc.invalidateQueries({ queryKey: ["clients"] });
+                  }}
+                  className="h-7 w-36 text-xs"
+                />
+              </label>
+            </div>
+            <div className="mt-2 flex flex-wrap gap-1.5 items-center">
               {(client.tags ?? []).map((t) => (
                 <Badge key={t} variant="secondary" className="cursor-pointer" onClick={() => removeTag(t)}>{t} ×</Badge>
               ))}

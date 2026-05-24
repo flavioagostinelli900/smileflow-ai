@@ -9,9 +9,11 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Calendar, Sparkles, AlertTriangle, Crown } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, type Operator } from "@/lib/api";
+import { api, type Operator, type PatientGroup } from "@/lib/api";
+import { PATIENT_GROUP_EMOJI, PATIENT_GROUP_LABEL } from "@/lib/age";
 import { usePermissions } from "@/lib/usePermissions";
 import { useStudio } from "@/lib/useStudio";
 import { ReadOnlyBanner } from "@/components/ReadOnlyBanner";
@@ -42,6 +44,7 @@ function Operators() {
   const [limitOpen, setLimitOpen] = useState(false);
   const [name, setName] = useState("");
   const [role, setRole] = useState("");
+  const [patientGroup, setPatientGroup] = useState<PatientGroup>("all");
   const [saving, setSaving] = useState(false);
 
   if (permissionsLoading || studioLoading) {
@@ -70,6 +73,7 @@ function Operators() {
       name: name.trim(),
       role: role.trim() || null,
       online: false,
+      patient_group: patientGroup,
     });
     setSaving(false);
     if (error) {
@@ -77,7 +81,7 @@ function Operators() {
       return;
     }
     toast.success("Operatore creato");
-    setName(""); setRole("");
+    setName(""); setRole(""); setPatientGroup("all");
     setNewOpen(false);
     qc.invalidateQueries({ queryKey: ["operators"] });
   };
@@ -126,7 +130,10 @@ function Operators() {
               </AvatarFallback>
             </Avatar>
             <h3 className="font-semibold">{o.name}</h3>
-            <p className="text-xs text-muted-foreground mb-3">{o.role ?? "—"}</p>
+            <p className="text-xs text-muted-foreground mb-2">{o.role ?? "—"}</p>
+            <Badge variant="outline" className="text-[10px] mb-3">
+              {PATIENT_GROUP_EMOJI[o.patient_group ?? "all"]} {PATIENT_GROUP_LABEL[o.patient_group ?? "all"]}
+            </Badge>
             <div className="flex flex-wrap gap-1 mb-4">
               {(o.departments ?? []).map((t) => (
                 <Badge key={t} variant="secondary" className="text-[10px]">{t}</Badge>
@@ -155,6 +162,17 @@ function Operators() {
           <div className="space-y-3">
             <div><Label>Nome</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Es. Dr. Rossi" /></div>
             <div><Label>Ruolo</Label><Input value={role} onChange={(e) => setRole(e.target.value)} placeholder="Es. Igienista" /></div>
+            <div>
+              <Label>Fascia pazienti</Label>
+              <Select value={patientGroup} onValueChange={(v) => setPatientGroup(v as PatientGroup)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="adults">👤 Adulti</SelectItem>
+                  <SelectItem value="children">👶 Bambini (Pediatrico)</SelectItem>
+                  <SelectItem value="all">👥 Tutti</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setNewOpen(false)} disabled={saving}>Annulla</Button>

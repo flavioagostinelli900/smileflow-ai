@@ -138,6 +138,8 @@ export type Database = {
       }
       clients: {
         Row: {
+          age_group: string
+          birth_date: string | null
           created_at: string
           department: string | null
           email: string | null
@@ -154,6 +156,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          age_group?: string
+          birth_date?: string | null
           created_at?: string
           department?: string | null
           email?: string | null
@@ -170,6 +174,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          age_group?: string
+          birth_date?: string | null
           created_at?: string
           department?: string | null
           email?: string | null
@@ -465,6 +471,7 @@ export type Database = {
           id: string
           name: string
           online: boolean | null
+          patient_group: string
           role: string | null
         }
         Insert: {
@@ -474,6 +481,7 @@ export type Database = {
           id?: string
           name: string
           online?: boolean | null
+          patient_group?: string
           role?: string | null
         }
         Update: {
@@ -483,6 +491,7 @@ export type Database = {
           id?: string
           name?: string
           online?: boolean | null
+          patient_group?: string
           role?: string | null
         }
         Relationships: []
@@ -870,6 +879,7 @@ export type Database = {
         Args: { _studio_id: string; _user_id: string }
         Returns: boolean
       }
+      compute_age_group: { Args: { _birth: string }; Returns: string }
       compute_subscription_expiry: {
         Args: { _cycle: string; _start: string }
         Returns: string

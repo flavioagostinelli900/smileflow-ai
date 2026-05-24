@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import { toast } from "sonner";
 import { ImportClientsDialog } from "@/components/ImportClientsDialog";
+import { AGE_GROUP_EMOJI, AGE_GROUP_LABEL } from "@/lib/age";
 import { usePermissions } from "@/lib/usePermissions";
 import { ReadOnlyBanner } from "@/components/ReadOnlyBanner";
 
@@ -123,6 +124,7 @@ function ClientsList() {
               <tr>
                 <th className="text-left font-medium px-4 py-3">Paziente</th>
                 <th className="text-left font-medium px-4 py-3">Contatti</th>
+                <th className="text-left font-medium px-4 py-3">Fascia</th>
                 <th className="text-left font-medium px-4 py-3">Famiglia</th>
                 <th className="text-left font-medium px-4 py-3">Reparto</th>
                 <th className="text-left font-medium px-4 py-3">Ultima visita</th>
@@ -154,6 +156,11 @@ function ClientsList() {
                     </div>
                   </td>
                   <td className="px-4 py-3"><div className="text-xs">{c.phone}</div><div className="text-xs text-muted-foreground">{c.email}</div></td>
+                  <td className="px-4 py-3">
+                    <Badge variant="outline" className="text-[10px]">
+                      {AGE_GROUP_EMOJI[c.age_group ?? "unspecified"]} {AGE_GROUP_LABEL[c.age_group ?? "unspecified"]}
+                    </Badge>
+                  </td>
                   <td className="px-4 py-3"><Badge variant="outline">{c.family_id ?? "—"}</Badge></td>
                   <td className="px-4 py-3"><Badge variant="secondary">{c.department ?? "—"}</Badge></td>
                   <td className="px-4 py-3 text-muted-foreground text-xs">{c.last_visit ?? "—"}</td>
@@ -164,7 +171,7 @@ function ClientsList() {
                   </td>
                 </tr>
               ))}
-              {filtered.length === 0 && <tr><td colSpan={6} className="px-4 py-12 text-center text-muted-foreground text-sm">Nessun paziente trovato</td></tr>}
+              {filtered.length === 0 && <tr><td colSpan={7} className="px-4 py-12 text-center text-muted-foreground text-sm">Nessun paziente trovato</td></tr>}
             </tbody>
           </table>
         </div>

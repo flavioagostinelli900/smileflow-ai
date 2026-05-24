@@ -1,108 +1,57 @@
-# Sistema Ruoli e Permessi DentAI
+## Piano implementazione: AI conversazionale famiglie + prezzi visite
 
-Implemento un sistema completo di ruoli con 3 livelli, pannello Super Admin, restrizioni UI per gli account studio e audit log delle modifiche.
+Implementazione completa in più step. Database + UI + logica AI.
 
----
+### 1. Database (migration)
+- `clients`: aggiungi `birth_date DATE` + `age_group TEXT` ('adult'|'pediatric'|'unspecified', default 'unspecified')
+- `operators`: aggiungi `patient_group TEXT` ('adults'|'children'|'all', default 'all')
+- `studio_settings.visit_types` JSONB: estendi struttura ad includere `{name, minutes, ai_booking, suitable_for: 'adults'|'children'|'all', avg_price: number}`
+- Trigger su `clients` per calcolare `age_group` da `birth_date` (sotto 18 = pediatric, >=18 = adult)
 
-## 1. Database (migrazione)
+### 2. Scheda paziente (`src/routes/clients.$clientId.tsx` + lista)
+- Form: campo Data di nascita (opzionale)
+- Mostra età calcolata + badge tag (Adulto/Pediatrico/Non specificato)
+- Lista pazienti: colonna age_group con badge
 
-Nuovi oggetti seguendo il pattern raccomandato (ruoli su tabella separata, no recursione RLS):
+### 3. Import CSV (`ImportClientsDialog.tsx`)
+- Aggiungi mapping colonna "Data di nascita"
+- Auto-tag in base a età
+- Rimuovi note dopo import (privacy)
 
-**Enum `app_role`**: `super_admin`, `authorized_admin`, `studio`
+### 4. Operatori (`src/routes/operators.tsx`)
+- Form: select "Fascia pazienti" (Adulti/Bambini/Tutti)
+- Badge visivo nella card (👤/👶/👥)
 
-**Tabella `user_roles`**
-- `id`, `user_id` (uuid → auth.users), `role` (app_role), `studio_id` (uuid nullable, per scoping admin autorizzati), `created_at`
-- Unique (user_id, role, studio_id)
+### 5. Configurazione visite (`src/routes/settings.tsx`)
+- Per ogni visit_type aggiungi: "Adatto a" (radio) e "Prezzo medio €" (number, 0 = variabile)
+- Nota privacy/variabile sotto il campo prezzo
 
-**Tabella `studios`** (account studio)
-- `id`, `name`, `email`, `owner_user_id`, `plan` (`free|pro|business`), `status` (`active|suspended`), `created_at`
-- Collega `studio_settings.studio_id`, `clients.studio_id`, ecc. — per ora aggiungo solo la tabella e un default `studio_id` in `studio_settings` per non rompere i dati esistenti
+### 6. AI chat (`src/routes/api/chat.ts`)
+- Pre-lookup: cerca cliente per telefono → 0 match / 1 match / N match (famiglia)
+- 1 match: saluta per nome, prosegue
+- N match: saluta neutro, prima della conferma chiede "Per chi devo prenotare?"
+- 0 match: chiede nome+cognome prima della conferma, crea profilo
+- Interpretazione risposta: "per me/io" → adulto; nome → cerca famiglia + tag; "figlio/bambino" → pediatrico + chiedi nome; "moglie/marito/madre/padre" → adulto + chiedi nome
+- Filtro slot: solo operatori con `patient_group` compatibile
+- Aggiorna `age_group` sul profilo quando viene specificato
+- Tipo visita filtrato per `suitable_for`
 
-**Tabella `admin_authorizations`**
-- `admin_user_id` (uuid), `studio_id` (uuid), `granted_by` (uuid), `created_at`
+### 7. Calendario (`src/routes/bookings.tsx`)
+- Badge fascia accanto al nome operatore (👤/👶/👥)
+- Indicatore visivo diverso per appuntamenti pediatrici (bordo/icona)
 
-**Tabella `audit_log`**
-- `id`, `user_id`, `studio_id`, `action`, `entity`, `entity_id`, `before` (jsonb), `after` (jsonb), `created_at`
+### 8. Dashboard fatturato (`src/routes/index.tsx`)
+- Calcolo "€X.Xk Recuperato" = Σ (prezzo_visita × num_appuntamenti) per appuntamenti con `source = 'ai_chat'` e prezzo > 0
+- Per appuntamenti con upsell: applica sconto = prezzo × (1 - discount%)
+- Nota sotto: "Stima basata sui prezzi medi configurati..."
+- Click apre dialog breakdown: lista per tipo visita (n appuntamenti, prezzo unitario/scontato, subtotale), totale, sconti applicati totali, conteggio variabili esclusi
 
-**Funzioni SECURITY DEFINER**
-- `has_role(_user_id, _role)` → boolean
-- `is_super_admin(_user_id)` → boolean
-- `can_manage_studio(_user_id, _studio_id)` → boolean (super admin OR authorized for that studio OR owner)
+### 9. Types (`src/lib/api.ts`)
+- Aggiorna `Client`, `Operator`, `VisitType` con nuovi campi
 
-**RLS** su tutte le nuove tabelle usando le funzioni sopra. Aggiorno le policy delle tabelle esistenti di configurazione (studio_settings, followup_sequences, upsell_rules, loyalty_rewards, operators) per consentire UPDATE/INSERT/DELETE solo a chi `can_manage_studio`. SELECT resta a `authenticated`.
+### Note tecniche
+- Tutti i tag "Adulto/Pediatrico" sono gestiti via colonna `age_group` (non via `tags[]`) per consistenza
+- Logica età: calcolo in trigger DB + utility lato client `getAgeGroup(birthDate)`
+- Le visite con prezzo 0 sono escluse dal totale ma contate separatamente
 
-**Trigger** generico per scrivere su `audit_log` su update/delete delle tabelle protette.
-
-**Seed**: il primo utente registrato (o un email specifica) viene marcato `super_admin`. Espongo anche un'azione manuale via SQL per promuovere.
-
----
-
-## 2. Frontend — hook permessi
-
-`src/lib/usePermissions.ts`
-- Carica `user_roles` per l'utente corrente
-- Espone: `isSuperAdmin`, `isAuthorizedAdmin`, `isStudio`, `canManage(studioId?)`, `currentStudioId`, `impersonatedStudioId` (per "Gestisci" del super admin, salvato in `localStorage`)
-
-Wrapper `<RequireManage>` e `<ReadOnlyBanner />`:
-- Banner: sfondo `bg-primary/5`, bordo `border-primary/20`, icona Shield, testo "Queste impostazioni sono gestite dal team DentAI per garantire le massime performance del tuo sistema."
-
----
-
-## 3. Aggiornamenti pagine esistenti
-
-Ovunque, condizionare i pulsanti "+ Nuovo …" e i form con `canManage`:
-- `clients.tsx`: nascondi "+ Nuovo" e "Importa database"
-- `followup.tsx`: nascondi "+ Nuovo workflow", form readonly
-- `operators.tsx`: nascondi "+ Nuovo operatore"
-- `loyalty.tsx`: nascondi "+ Nuovo premio"
-- `settings.tsx`: tutti i campi `disabled`, pulsanti Salva nascosti, banner in alto su ogni Tab
-- `upsell.tsx`: toggle regole disabilitati
-- `reminders.tsx`: solo visualizzazione (già lo è)
-
-Non mostro messaggi di errore: i controlli sono semplicemente assenti o disabilitati.
-
----
-
-## 4. Pannello Super Admin `/admin`
-
-Nuova route `src/routes/admin.tsx` (visibile solo a `isSuperAdmin || isAuthorizedAdmin`, redirect altrimenti):
-- Tabella studi con: Nome, Email, Data registrazione, Stato badge, Piano badge
-- Azioni per riga:
-  - **Gestisci** → setta `impersonatedStudioId` in localStorage e naviga a `/` — l'header mostra una barra "Stai gestendo: {studio}" con "Esci"
-  - **Sospendi / Riattiva** → toggle `studios.status`
-  - **Autorizza admin** → dialog: input email utente esistente → crea `admin_authorizations`
-- Sezione separata "Audit log" con ultime 50 modifiche (chi, quando, cosa)
-
-Voce "Admin" nella sidebar di `AppLayout`, visibile solo ai ruoli admin.
-
----
-
-## 5. Sicurezza
-
-- Ruolo assegnato a creazione account (default `studio`); cambio solo via funzione SECURITY DEFINER richiamabile dal pannello (verifica ruolo del chiamante)
-- RLS impedisce update di `user_roles` da parte dello studio
-- Audit log via trigger DB → garantito anche se l'UI viene aggirata
-
----
-
-## File principali
-
-**Nuovi**
-- `supabase/migrations/<ts>_roles_system.sql`
-- `src/lib/usePermissions.ts`
-- `src/components/ReadOnlyBanner.tsx`
-- `src/components/ImpersonationBar.tsx`
-- `src/routes/admin.tsx`
-
-**Modificati**
-- `src/components/AppLayout.tsx` (voce Admin + ImpersonationBar)
-- `src/routes/{clients,followup,operators,loyalty,settings,upsell}.tsx` (gating UI + banner)
-- `src/lib/api.ts` (nuovi tipi e query studios/audit)
-
----
-
-## Note
-
-- Per non rompere i dati esistenti, `studio_id` sulle tabelle esistenti viene aggiunto come nullable con default a uno studio "Default" creato in migrazione; la promozione ad ambiente multi-tenant completo è rimandata.
-- L'invio di nuovi inviti/account è fuori scope per questa iterazione: il Super Admin assegna ruoli a utenti che si sono già registrati via login esistente.
-- Confermi che il Super Admin sia l'utente attualmente loggato (la prima email registrata) o vuoi indicarmi un'email specifica da promuovere?
+Procedo?
