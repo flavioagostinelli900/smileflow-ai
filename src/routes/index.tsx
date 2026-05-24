@@ -7,6 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Calendar as CalendarIcon, UserCheck, PhoneIncoming, Send, MessagesSquare, Sparkles, Calendar, KeyRound, X } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { useAuth } from "@/lib/useAuth";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
+import { getDashboardRevenue } from "@/lib/revenue.functions";
 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarPicker } from "@/components/ui/calendar";
@@ -74,13 +78,29 @@ function Dashboard() {
 
   const days = Math.max(1, Math.round((range.to.getTime() - range.from.getTime()) / 86400000) + 1);
   const scale = days / 7;
+
+  const fromIso = useMemo(() => {
+    const d = new Date(range.from); d.setHours(0, 0, 0, 0); return d.toISOString();
+  }, [range.from]);
+  const toIso = useMemo(() => {
+    const d = new Date(range.to); d.setHours(23, 59, 59, 999); return d.toISOString();
+  }, [range.to]);
+
+  const fetchRevenue = useServerFn(getDashboardRevenue);
+  const { data: revenueData } = useQuery({
+    queryKey: ["dashboard-revenue", fromIso, toIso],
+    queryFn: () => fetchRevenue({ data: { from: fromIso, to: toIso } }),
+  });
+  const realRevenue = revenueData?.total ?? 0;
+  const [breakdownOpen, setBreakdownOpen] = useState(false);
+
   const stats = {
     appts: Math.round(148 * scale),
     recovered: Math.round(62 * scale),
     calls: Math.round(37 * scale),
     msgs: Math.round(1284 * scale),
     convos: Math.round(29 * Math.max(1, scale * 0.6)),
-    revenue: (12.4 * scale).toFixed(1),
+    revenue: realRevenue >= 1000 ? `${(realRevenue / 1000).toFixed(1)}k` : realRevenue.toFixed(0),
     response: 94,
   };
 
@@ -138,10 +158,14 @@ function Dashboard() {
               <div className="text-2xl md:text-3xl font-semibold">{stats.response}%</div>
               <div className="text-xs text-primary-foreground/70">Tasso risposta</div>
             </div>
-            <div>
-              <div className="text-2xl md:text-3xl font-semibold">€{stats.revenue}k</div>
+            <button
+              onClick={() => setBreakdownOpen(true)}
+              className="text-left rounded-lg px-2 -mx-2 py-1 -my-1 hover:bg-white/10 transition-colors"
+              title="Vedi breakdown fatturato"
+            >
+              <div className="text-2xl md:text-3xl font-semibold">€{stats.revenue}</div>
               <div className="text-xs text-primary-foreground/70">Recuperato</div>
-            </div>
+            </button>
           </div>
         </div>
       </div>
@@ -301,6 +325,76 @@ function Dashboard() {
           ))}
         </div>
       </Card>
+
+      <Dialog open={breakdownOpen} onOpenChange={setBreakdownOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Breakdown fatturato — {rangeLabel}</DialogTitle>
+            <DialogDescription>
+              Stima del fatturato generato dagli appuntamenti prenotati via AI, con sconti upsell applicati.
+            </DialogDescription>
+          </DialogHeader>
+
+          {!revenueData || revenueData.breakdown.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-6 text-center">
+              Nessun appuntamento AI nel periodo selezionato.
+            </p>
+          ) : (
+            <div className="space-y-4">
+              <div className="rounded-lg border divide-y">
+                {revenueData.breakdown.map((row) => (
+                  <div key={row.visit_type} className="p-3 flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium text-sm">{row.visit_type}</div>
+                      <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
+                        {row.variable ? (
+                          <div>Prezzo variabile · non incluso nel totale</div>
+                        ) : (
+                          <>
+                            <div>Prezzo pieno: €{row.full_price.toFixed(2)}</div>
+                            {row.discount_percent > 0 && (
+                              <div>
+                                Sconto upsell: -{row.discount_percent}% (→ €{row.effective_price.toFixed(2)})
+                              </div>
+                            )}
+                          </>
+                        )}
+                        <div>Appuntamenti: {row.appointments}</div>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="font-semibold">
+                        {row.variable ? "—" : `€${row.subtotal.toFixed(2)}`}
+                      </div>
+                      <div className="text-xs text-muted-foreground">Subtotale</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="rounded-lg bg-muted/50 p-4 space-y-2">
+                {revenueData.totalDiscount > 0 && (
+                  <div className="flex justify-between text-sm text-muted-foreground">
+                    <span>Sconto totale applicato da upsell</span>
+                    <span>-€{revenueData.totalDiscount.toFixed(2)}</span>
+                  </div>
+                )}
+                {revenueData.variableCount > 0 && (
+                  <div className="text-xs text-muted-foreground">
+                    {revenueData.variableCount} appuntamenti con prezzo variabile esclusi dal totale.
+                  </div>
+                )}
+                <div className="flex justify-between items-baseline pt-2 border-t">
+                  <span className="font-semibold">Totale stimato incassato</span>
+                  <span className="text-xl font-semibold text-primary">
+                    €{revenueData.total.toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }
