@@ -89,7 +89,11 @@ function AdminPanel() {
   const qc = useQueryClient();
   const canAccess = isSuperAdmin || isAuthorizedAdmin;
   const createAccount = useServerFn(createStudioAccount);
+  const deleteStudioRpc = useServerFn(deleteStudioFn);
   const [credentials, setCredentials] = useState<null | { studio_name: string; first_name: string; email: string; password: string }>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Studio | null>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deletingStudio, setDeletingStudio] = useState(false);
 
 
   useEffect(() => {
