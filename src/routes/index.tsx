@@ -158,10 +158,14 @@ function Dashboard() {
               <div className="text-2xl md:text-3xl font-semibold">{stats.response}%</div>
               <div className="text-xs text-primary-foreground/70">Tasso risposta</div>
             </div>
-            <div>
-              <div className="text-2xl md:text-3xl font-semibold">€{stats.revenue}k</div>
+            <button
+              onClick={() => setBreakdownOpen(true)}
+              className="text-left rounded-lg px-2 -mx-2 py-1 -my-1 hover:bg-white/10 transition-colors"
+              title="Vedi breakdown fatturato"
+            >
+              <div className="text-2xl md:text-3xl font-semibold">€{stats.revenue}</div>
               <div className="text-xs text-primary-foreground/70">Recuperato</div>
-            </div>
+            </button>
           </div>
         </div>
       </div>
