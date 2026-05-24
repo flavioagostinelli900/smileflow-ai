@@ -124,6 +124,7 @@ function ClientsList() {
               <tr>
                 <th className="text-left font-medium px-4 py-3">Paziente</th>
                 <th className="text-left font-medium px-4 py-3">Contatti</th>
+                <th className="text-left font-medium px-4 py-3">Fascia</th>
                 <th className="text-left font-medium px-4 py-3">Famiglia</th>
                 <th className="text-left font-medium px-4 py-3">Reparto</th>
                 <th className="text-left font-medium px-4 py-3">Ultima visita</th>
