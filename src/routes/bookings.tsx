@@ -10,6 +10,7 @@ import {
 import { Plus, Clock, Users } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { api, type Operator } from "@/lib/api";
+import { PATIENT_GROUP_EMOJI, PATIENT_GROUP_LABEL } from "@/lib/age";
 
 export const Route = createFileRoute("/bookings")({
   component: Bookings,
