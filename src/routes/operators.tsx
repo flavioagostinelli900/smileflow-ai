@@ -10,6 +10,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Plus, Calendar, Sparkles, AlertTriangle, Crown } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, type Operator, type PatientGroup } from "@/lib/api";
@@ -139,10 +140,20 @@ function Operators() {
                 <Badge key={t} variant="secondary" className="text-[10px]">{t}</Badge>
               ))}
             </div>
-            <div className="pt-3 border-t flex items-center justify-between">
-              <div>
-                <Badge className={o.online ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"}>
-                  ● {o.online ? "Online" : "Offline"}
+            <div className="pt-3 border-t flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={!!o.online}
+                  onCheckedChange={async (checked) => {
+                    const { error } = await supabase.from("operators").update({ online: checked }).eq("id", o.id);
+                    if (error) return toast.error(error.message);
+                    toast.success(checked ? "Operatore Online" : "Operatore Offline");
+                    qc.invalidateQueries({ queryKey: ["operators"] });
+                  }}
+                  aria-label="Toggle online"
+                />
+                <Badge className={o.online ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"}>
+                  ● {o.online ? "🟢 Online" : "🔴 Offline"}
                 </Badge>
               </div>
               <Link to="/operators/$operatorId" params={{ operatorId: o.id }}>

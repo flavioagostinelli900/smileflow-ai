@@ -117,13 +117,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <Brand />
         <NavList items={fullNav} current={location.pathname} />
         <div className="p-3 m-3 rounded-lg bg-sidebar-accent/50 border border-sidebar-border">
-          <div className="flex items-center gap-2 mb-1.5">
+          <div className="flex items-center gap-2">
             <Sparkles className="size-3.5 text-sidebar-primary" />
             <span className="text-xs font-medium text-sidebar-accent-foreground">AI attiva</span>
           </div>
-          <p className="text-[11px] text-sidebar-foreground/70 leading-snug">
-            142 conversazioni gestite oggi · 28 prenotazioni
-          </p>
         </div>
       </aside>
 

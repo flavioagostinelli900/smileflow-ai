@@ -122,7 +122,7 @@ function Bookings() {
               <SelectItem value={ALL}>Tutti gli operatori</SelectItem>
               {ops.map((o) => (
                 <SelectItem key={o.id} value={o.id}>
-                  {PATIENT_GROUP_EMOJI[o.patient_group ?? "all"]} {o.name} — {PATIENT_GROUP_LABEL[o.patient_group ?? "all"]}
+                  {o.online ? "🟢" : "🔴"} {PATIENT_GROUP_EMOJI[o.patient_group ?? "all"]} {o.name}{!o.online && " — Non disponibile"}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -131,9 +131,10 @@ function Bookings() {
         {selectedOp === ALL && ops.length > 0 && (
           <div className="flex flex-wrap gap-2">
             {ops.map((o, i) => (
-              <div key={o.id} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <div key={o.id} className={`flex items-center gap-1.5 text-xs ${o.online ? "text-muted-foreground" : "text-muted-foreground/50 line-through"}`}>
                 <span className={`size-2.5 rounded-full ${paletteFor(i).dot}`} />
                 <span>{o.name}</span>
+                {!o.online && <span className="not-italic no-underline">🔴</span>}
               </div>
             ))}
           </div>

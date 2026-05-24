@@ -20,7 +20,9 @@ const TABLE_KEYS: Record<string, string[]> = {
   conversations: ["conversations"],
   messages: ["messages", "conversations"],
   missed_calls: ["missed-calls"],
+  operator_status_history: ["operator-status-history"],
 };
+
 
 /**
  * Subscribes once to all primary tables and invalidates the matching React

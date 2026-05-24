@@ -1,57 +1,32 @@
-## Piano implementazione: AI conversazionale famiglie + prezzi visite
+## Piano: 4 modifiche su admin / studio / operatori
 
-Implementazione completa in più step. Database + UI + logica AI.
+### 1. Nuovo studio parte vuoto
+- Verifica `src/lib/studios.functions.ts` (`createStudioAccount`) e flusso "crea studio" in `src/routes/admin.tsx`: assicurati che NON vengano inseriti operatori/clienti/appuntamenti/follow-up/upsell/loyalty/missed_calls di esempio.
+- Rimuovi eventuali seed hardcoded ancora presenti in route (`bookings`, `loyalty`, `missed-calls`, `followup`, `upsell`, `index`) — già in buona parte fatto nelle iterazioni precedenti, ma faccio un giro di pulizia mirato.
+- I "premi fedeltà presenti" e "workflow follow-up presenti" sono template globali condivisi: lasciati come sono, ma con contatori a 0 per lo studio nuovo (già il caso, perché i conteggi vengono dai dati reali).
 
-### 1. Database (migration)
-- `clients`: aggiungi `birth_date DATE` + `age_group TEXT` ('adult'|'pediatric'|'unspecified', default 'unspecified')
-- `operators`: aggiungi `patient_group TEXT` ('adults'|'children'|'all', default 'all')
-- `studio_settings.visit_types` JSONB: estendi struttura ad includere `{name, minutes, ai_booking, suitable_for: 'adults'|'children'|'all', avg_price: number}`
-- Trigger su `clients` per calcolare `age_group` da `birth_date` (sotto 18 = pediatric, >=18 = adult)
+### 2. Admin nascosto agli studi
+- `src/components/AppLayout.tsx` (sidebar + menu mobile): nasconde la voce "Admin" se `!isSuperAdmin && !isAuthorizedAdmin`.
+- `src/routes/admin.tsx`: aggiungi `beforeLoad`/guard nel componente che fa `redirect({ to: "/" })` per utenti studio.
 
-### 2. Scheda paziente (`src/routes/clients.$clientId.tsx` + lista)
-- Form: campo Data di nascita (opzionale)
-- Mostra età calcolata + badge tag (Adulto/Pediatrico/Non specificato)
-- Lista pazienti: colonna age_group con badge
+### 3. Cambio piano in tempo reale
+- Già coperto da `useRealtimeSync` su tabella `studios` → `my-studio-plan`, `admin-studios` invalidati. Verifico che `useStudio()` invalidi correttamente.
+- In `src/routes/admin.tsx` durante il cambio piano:
+  - Conta operatori attivi (`online=true` o totali?) → confronto con `MAX_OPERATORS[newPlan]`.
+  - Se eccesso: dialog di conferma "Lo studio ha X operatori ma il piano prevede max Y. Procedere?".
+  - Su conferma: disabilita gli ultimi N operatori (`online=false`, oppure aggiungo flag `disabled`?). Uso `online=false` ordinati per `created_at DESC`.
+- In `src/routes/operators.tsx`: blocca creazione se `operators.length >= maxOperators` con toast upgrade.
+- Notifica in-app allo studio: inserisco riga in una nuova tabella `notifications` … TROPPO grosso. Alternativa: uso `sonner` toast quando lo studio rileva via realtime che il proprio `studios.plan` è cambiato. Semplice: hook `usePlanChangeNotification` che memorizza l'ultimo plan visto in `localStorage` e mostra toast quando cambia.
 
-### 3. Import CSV (`ImportClientsDialog.tsx`)
-- Aggiungi mapping colonna "Data di nascita"
-- Auto-tag in base a età
-- Rimuovi note dopo import (privacy)
+### 4. Stato online/offline operatori
+- Campo `operators.online` già esiste ✅.
+- In `src/routes/operators.tsx`: aggiungi `Switch` su ogni card con badge 🟢/🔴, mutation `update online`.
+- In `src/routes/bookings.tsx`: filtra/marca gli operatori `online=false` come "Non disponibile" (slot non selezionabili visivamente).
+- In `src/routes/api/chat.ts`: filtra `operators` per `online=true` quando propone slot.
+- Dashboard `src/routes/index.tsx`: aggiungi widget "Operatori attivi oggi: X/Y".
+- **Storico stato**: nuova tabella `operator_status_history` (operator_id, online, changed_at, changed_by). Trigger AFTER UPDATE su `operators` per registrare i cambi.
 
-### 4. Operatori (`src/routes/operators.tsx`)
-- Form: select "Fascia pazienti" (Adulti/Bambini/Tutti)
-- Badge visivo nella card (👤/👶/👥)
+### Migration richieste
+- `operator_status_history` + trigger.
 
-### 5. Configurazione visite (`src/routes/settings.tsx`)
-- Per ogni visit_type aggiungi: "Adatto a" (radio) e "Prezzo medio €" (number, 0 = variabile)
-- Nota privacy/variabile sotto il campo prezzo
-
-### 6. AI chat (`src/routes/api/chat.ts`)
-- Pre-lookup: cerca cliente per telefono → 0 match / 1 match / N match (famiglia)
-- 1 match: saluta per nome, prosegue
-- N match: saluta neutro, prima della conferma chiede "Per chi devo prenotare?"
-- 0 match: chiede nome+cognome prima della conferma, crea profilo
-- Interpretazione risposta: "per me/io" → adulto; nome → cerca famiglia + tag; "figlio/bambino" → pediatrico + chiedi nome; "moglie/marito/madre/padre" → adulto + chiedi nome
-- Filtro slot: solo operatori con `patient_group` compatibile
-- Aggiorna `age_group` sul profilo quando viene specificato
-- Tipo visita filtrato per `suitable_for`
-
-### 7. Calendario (`src/routes/bookings.tsx`)
-- Badge fascia accanto al nome operatore (👤/👶/👥)
-- Indicatore visivo diverso per appuntamenti pediatrici (bordo/icona)
-
-### 8. Dashboard fatturato (`src/routes/index.tsx`)
-- Calcolo "€X.Xk Recuperato" = Σ (prezzo_visita × num_appuntamenti) per appuntamenti con `source = 'ai_chat'` e prezzo > 0
-- Per appuntamenti con upsell: applica sconto = prezzo × (1 - discount%)
-- Nota sotto: "Stima basata sui prezzi medi configurati..."
-- Click apre dialog breakdown: lista per tipo visita (n appuntamenti, prezzo unitario/scontato, subtotale), totale, sconti applicati totali, conteggio variabili esclusi
-
-### 9. Types (`src/lib/api.ts`)
-- Aggiorna `Client`, `Operator`, `VisitType` con nuovi campi
-
-### Note tecniche
-- Tutti i tag "Adulto/Pediatrico" sono gestiti via colonna `age_group` (non via `tags[]`) per consistenza
-- Logica età: calcolo in trigger DB + utility lato client `getAgeGroup(birthDate)`
-- Le visite con prezzo 0 sono escluse dal totale ma contate separatamente
-
-Procedo?
+Procedo con l'implementazione?

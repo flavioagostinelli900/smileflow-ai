@@ -442,6 +442,30 @@ export type Database = {
         }
         Relationships: []
       }
+      operator_status_history: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          id: string
+          online: boolean
+          operator_id: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          online: boolean
+          operator_id: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          online?: boolean
+          operator_id?: string
+        }
+        Relationships: []
+      }
       operator_visit_durations: {
         Row: {
           id: string
