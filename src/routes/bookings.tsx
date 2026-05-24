@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/select";
 import { Plus, Clock, Users } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { api, type Operator } from "@/lib/api";
+import { api, type Operator, type Appointment, type Client, type StudioSettings } from "@/lib/api";
 import { PATIENT_GROUP_EMOJI, PATIENT_GROUP_LABEL } from "@/lib/age";
 
 export const Route = createFileRoute("/bookings")({
@@ -17,10 +17,9 @@ export const Route = createFileRoute("/bookings")({
   head: () => ({ meta: [{ title: "Prenotazioni · DentAI" }] }),
 });
 
-const days = ["Lun 10", "Mar 11", "Mer 12", "Gio 13", "Ven 14"];
-const hours = ["09:00", "10:00", "11:00", "12:00", "15:00", "16:00", "17:00", "18:00"];
+const HOURS = ["09:00", "10:00", "11:00", "12:00", "15:00", "16:00", "17:00", "18:00"];
+const DAY_LABELS = ["Dom", "Lun", "Mar", "Mer", "Gio", "Ven", "Sab"];
 
-// Color palette assigned deterministically per operator (Tailwind tokens).
 const OP_PALETTE: { bg: string; dot: string }[] = [
   { bg: "bg-info/15 text-info border-info/30", dot: "bg-info" },
   { bg: "bg-success/15 text-success border-success/30", dot: "bg-success" },
@@ -29,40 +28,32 @@ const OP_PALETTE: { bg: string; dot: string }[] = [
   { bg: "bg-destructive/15 text-destructive border-destructive/30", dot: "bg-destructive" },
   { bg: "bg-muted text-foreground border-border", dot: "bg-muted-foreground" },
 ];
-
-function paletteFor(index: number) {
-  return OP_PALETTE[index % OP_PALETTE.length];
-}
-
-type Booking = { name: string; type: string; opName: string };
-
-// Mock bookings keyed by day-hour; opName is matched against fetched operators
-// (by last name, falls back gracefully) so the demo colors track real data.
-const bookings: Record<string, Booking> = {
-  "Lun 10-09:00": { name: "G. Romano", type: "Igiene", opName: "Conti" },
-  "Lun 10-11:00": { name: "M. Bianchi", type: "Conservativa", opName: "Ferri" },
-  "Mar 11-10:00": { name: "G. Romano", type: "Igiene", opName: "Conti" },
-  "Mar 11-15:00": { name: "L. De Santis", type: "Implantologia", opName: "Rossi" },
-  "Mer 12-09:00": { name: "S. Conti", type: "Ortodonzia", opName: "Greco" },
-  "Mer 12-16:00": { name: "P. Greco", type: "Endodonzia", opName: "Ferri" },
-  "Gio 13-10:00": { name: "E. Ferri", type: "Igiene", opName: "Conti" },
-  "Gio 13-17:00": { name: "C. Moretti", type: "Sbiancamento", opName: "Conti" },
-  "Ven 14-11:00": { name: "L. De Santis", type: "Controllo", opName: "Rossi" },
-};
-
-const visitTypes = [
-  { name: "Igiene dentale", duration: "45 min", color: "bg-info" },
-  { name: "Conservativa", duration: "60 min", color: "bg-primary" },
-  { name: "Implantologia", duration: "90 min", color: "bg-success" },
-  { name: "Ortodonzia", duration: "30 min", color: "bg-warning" },
-  { name: "Sbiancamento", duration: "60 min", color: "bg-info" },
-  { name: "Controllo", duration: "20 min", color: "bg-muted-foreground" },
-];
+const paletteFor = (i: number) => OP_PALETTE[i % OP_PALETTE.length];
 
 const ALL = "__all__";
 
+type ApptRow = Appointment & { client: Client | null; operator: Operator | null };
+
+function startOfWeek(d: Date) {
+  const x = new Date(d); x.setHours(0, 0, 0, 0);
+  const day = x.getDay(); // 0=Sun
+  const diff = day === 0 ? -6 : 1 - day; // Monday
+  x.setDate(x.getDate() + diff);
+  return x;
+}
+
 function Bookings() {
   const [selectedOp, setSelectedOp] = useState<string>(ALL);
+
+  const weekStart = useMemo(() => startOfWeek(new Date()), []);
+  const weekEnd = useMemo(() => {
+    const d = new Date(weekStart); d.setDate(d.getDate() + 5); return d;
+  }, [weekStart]);
+
+  const days = useMemo(() => Array.from({ length: 5 }, (_, i) => {
+    const d = new Date(weekStart); d.setDate(d.getDate() + i);
+    return { date: d, key: d.toISOString().slice(0, 10), label: `${DAY_LABELS[d.getDay()]} ${d.getDate()}` };
+  }), [weekStart]);
 
   const { data: ops = [] } = useQuery({
     queryKey: ["operators"],
@@ -73,23 +64,49 @@ function Bookings() {
     },
   });
 
-  // Map operator id -> palette index (stable across renders)
+  const { data: settings } = useQuery({
+    queryKey: ["studio-settings"],
+    queryFn: async () => {
+      const { data, error } = await api.studioSettings();
+      if (error) throw error;
+      return data as StudioSettings | null;
+    },
+  });
+
+  const { data: appts = [] } = useQuery({
+    queryKey: ["appointments", weekStart.toISOString(), weekEnd.toISOString()],
+    queryFn: async () => {
+      const { data, error } = await api.appointments();
+      if (error) throw error;
+      return (data ?? []) as ApptRow[];
+    },
+  });
+
   const opMeta = useMemo(() => {
     const m = new Map<string, { name: string; palette: { bg: string; dot: string } }>();
     ops.forEach((o, i) => m.set(o.id, { name: o.name, palette: paletteFor(i) }));
     return m;
   }, [ops]);
 
-  // Resolve mock booking opName (e.g. "Rossi") to a real operator id.
-  function resolveOpId(opName: string): string | null {
-    const hit = ops.find((o) => o.name.toLowerCase().includes(opName.toLowerCase()));
-    return hit?.id ?? null;
-  }
+  // Bucket appointments by day-key + hour
+  const bookingsByCell = useMemo(() => {
+    const map = new Map<string, ApptRow[]>();
+    for (const a of appts) {
+      const d = new Date(a.starts_at);
+      const dayKey = d.toISOString().slice(0, 10);
+      const hour = `${String(d.getHours()).padStart(2, "0")}:00`;
+      const key = `${dayKey}-${hour}`;
+      const arr = map.get(key) ?? [];
+      arr.push(a);
+      map.set(key, arr);
+    }
+    return map;
+  }, [appts]);
 
-  const selectedOpName =
-    selectedOp === ALL ? null : opMeta.get(selectedOp)?.name ?? null;
-
+  const selectedOpName = selectedOp === ALL ? null : opMeta.get(selectedOp)?.name ?? null;
   const title = selectedOpName ? `Prenotazioni — ${selectedOpName}` : "Prenotazioni";
+
+  const visitTypes = settings?.visit_types ?? [];
 
   return (
     <AppLayout>
@@ -126,38 +143,45 @@ function Bookings() {
       <div className="grid lg:grid-cols-4 gap-6">
         <div className="lg:col-span-3">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="font-semibold">Settimana 10 — 14 Giugno</h3>
+            <h3 className="font-semibold">
+              Settimana {weekStart.getDate()} — {new Date(weekEnd.getTime() - 86400000).getDate()}{" "}
+              {weekStart.toLocaleDateString("it", { month: "long" })}
+            </h3>
             <Button className="bg-gradient-primary" size="sm"><Plus className="size-4 mr-1.5" />Nuova prenotazione</Button>
           </div>
           <Card className="overflow-hidden">
             <div className="grid grid-cols-[80px_repeat(5,1fr)] text-xs">
               <div className="bg-muted/60 border-b border-r p-3" />
               {days.map((d) => (
-                <div key={d} className="bg-muted/60 border-b border-r last:border-r-0 p-3 text-center font-medium">{d}</div>
+                <div key={d.key} className="bg-muted/60 border-b border-r last:border-r-0 p-3 text-center font-medium">{d.label}</div>
               ))}
-              {hours.map((h) => (
+              {HOURS.map((h) => (
                 <Fragment key={h}>
                   <div className="border-b border-r p-3 text-muted-foreground flex items-center gap-1 text-[11px]">
                     <Clock className="size-3" />{h}
                   </div>
                   {days.map((d) => {
-                    const b = bookings[`${d}-${h}`];
-                    if (!b) return <div key={`${d}-${h}`} className="border-b border-r last:border-r-0 p-1.5 min-h-14" />;
-                    const opId = resolveOpId(b.opName);
-                    if (selectedOp !== ALL && opId !== selectedOp) {
-                      return <div key={`${d}-${h}`} className="border-b border-r last:border-r-0 p-1.5 min-h-14" />;
+                    const cell = bookingsByCell.get(`${d.key}-${h}`) ?? [];
+                    const visible = selectedOp === ALL ? cell : cell.filter((a) => a.operator_id === selectedOp);
+                    if (visible.length === 0) {
+                      return <div key={`${d.key}-${h}`} className="border-b border-r last:border-r-0 p-1.5 min-h-14" />;
                     }
-                    const palette = opId ? opMeta.get(opId)?.palette : null;
-                    const tone = palette?.bg ?? "bg-muted text-foreground border-border";
                     return (
-                      <div key={`${d}-${h}`} className="border-b border-r last:border-r-0 p-1.5 min-h-14">
-                        <div className={`rounded-md border px-2 py-1.5 text-[11px] ${tone}`}>
-                          <div className="font-medium">{b.name}</div>
-                          <div className="opacity-80">
-                            {b.type}
-                            {selectedOp === ALL && <> · {b.opName}</>}
-                          </div>
-                        </div>
+                      <div key={`${d.key}-${h}`} className="border-b border-r last:border-r-0 p-1.5 min-h-14 space-y-1">
+                        {visible.map((a) => {
+                          const meta = a.operator_id ? opMeta.get(a.operator_id) : null;
+                          const tone = meta?.palette.bg ?? "bg-muted text-foreground border-border";
+                          const name = a.client ? `${a.client.first_name[0]}. ${a.client.last_name}` : "—";
+                          return (
+                            <div key={a.id} className={`rounded-md border px-2 py-1.5 text-[11px] ${tone}`}>
+                              <div className="font-medium">{name}</div>
+                              <div className="opacity-80">
+                                {a.visit_type}
+                                {selectedOp === ALL && meta && <> · {meta.name}</>}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     );
                   })}
@@ -170,14 +194,16 @@ function Bookings() {
         <div>
           <h3 className="font-semibold mb-4">Tipologie visita</h3>
           <Card className="divide-y">
-            {visitTypes.map((v) => (
+            {visitTypes.length === 0 ? (
+              <div className="p-4 text-xs text-muted-foreground">Nessuna tipologia configurata. Vai in Impostazioni.</div>
+            ) : visitTypes.map((v, i) => (
               <div key={v.name} className="p-3 flex items-center gap-3">
-                <span className={`size-2.5 rounded-full ${v.color}`} />
+                <span className={`size-2.5 rounded-full ${paletteFor(i).dot}`} />
                 <div className="flex-1">
                   <div className="text-sm font-medium">{v.name}</div>
-                  <div className="text-xs text-muted-foreground">{v.duration}</div>
+                  <div className="text-xs text-muted-foreground">{v.minutes} min{v.avg_price ? ` · €${v.avg_price}` : ""}</div>
                 </div>
-                <Badge variant="outline" className="text-[10px]">Auto</Badge>
+                {v.ai_booking && <Badge variant="outline" className="text-[10px]">AI</Badge>}
               </div>
             ))}
           </Card>
