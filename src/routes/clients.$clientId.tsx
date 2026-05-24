@@ -58,7 +58,7 @@ function ClientDetail() {
     queryKey: ["sequences"],
     queryFn: async () => {
       const { data } = await supabase.from("followup_sequences").select("*").eq("active", true);
-      return (data ?? []) as FollowupSequence[];
+      return (data ?? []) as unknown as FollowupSequence[];
     },
   });
 
