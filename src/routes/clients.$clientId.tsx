@@ -13,6 +13,7 @@ import type { Client, Appointment, Conversation, FollowupSequence, Operator } fr
 import { evaluateUpsell, nextEligibleRule, type UpsellRule, type UpsellOffer } from "@/lib/upsell";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { AGE_GROUP_EMOJI, AGE_GROUP_LABEL, computeAge } from "@/lib/age";
 
 export const Route = createFileRoute("/clients/$clientId")({
   component: ClientDetail,
