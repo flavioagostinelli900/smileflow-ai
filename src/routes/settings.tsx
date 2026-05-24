@@ -123,17 +123,38 @@ function Settings() {
             </div>
             <div className="space-y-3">
               {draft.visit_types.map((v, i) => (
-                <div key={i} className="grid grid-cols-[1fr_120px_180px_auto] items-center gap-3 p-3 rounded-lg bg-muted/30">
-                  <Input value={v.name} onChange={(e) => updateVisit(i, { name: e.target.value })} placeholder="Nome visita" />
-                  <div className="flex items-center gap-2">
-                    <Input type="number" value={v.minutes} onChange={(e) => updateVisit(i, { minutes: Number(e.target.value) })} className="w-20" />
-                    <span className="text-xs text-muted-foreground">min</span>
+                <div key={i} className="p-3 rounded-lg bg-muted/30 space-y-3">
+                  <div className="grid grid-cols-[1fr_110px_auto] items-center gap-3">
+                    <Input value={v.name} onChange={(e) => updateVisit(i, { name: e.target.value })} placeholder="Nome visita" />
+                    <div className="flex items-center gap-2">
+                      <Input type="number" value={v.minutes} onChange={(e) => updateVisit(i, { minutes: Number(e.target.value) })} className="w-20" />
+                      <span className="text-xs text-muted-foreground">min</span>
+                    </div>
+                    {canManage && <Button size="icon" variant="ghost" onClick={() => removeVisit(i)} className="text-destructive"><Trash2 className="size-4" /></Button>}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Switch checked={v.ai_booking} onCheckedChange={(b) => updateVisit(i, { ai_booking: b })} />
-                    <span className="text-xs text-muted-foreground">Prenotazione AI</span>
+                  <div className="grid md:grid-cols-3 gap-3">
+                    <div className="flex items-center gap-2">
+                      <Switch checked={v.ai_booking} onCheckedChange={(b) => updateVisit(i, { ai_booking: b })} />
+                      <span className="text-xs text-muted-foreground">Prenotazione AI</span>
+                    </div>
+                    <div>
+                      <Label className="text-[11px]">Adatto a</Label>
+                      <select
+                        className="w-full h-9 border rounded-md px-2 bg-background text-sm"
+                        value={v.suitable_for ?? "all"}
+                        onChange={(e) => updateVisit(i, { suitable_for: e.target.value as "adults" | "children" | "all" })}
+                      >
+                        <option value="adults">👤 Adulti</option>
+                        <option value="children">👶 Bambini</option>
+                        <option value="all">👥 Tutti</option>
+                      </select>
+                    </div>
+                    <div>
+                      <Label className="text-[11px]">Prezzo medio (€)</Label>
+                      <Input type="number" min={0} value={v.avg_price ?? 0} onChange={(e) => updateVisit(i, { avg_price: Number(e.target.value) })} />
+                    </div>
                   </div>
-                  {canManage && <Button size="icon" variant="ghost" onClick={() => removeVisit(i)} className="text-destructive"><Trash2 className="size-4" /></Button>}
+                  <p className="text-[11px] text-muted-foreground">Inserisci 0 per i servizi con prezzo variabile. Non saranno inclusi nella stima fatturato.</p>
                 </div>
               ))}
             </div>
