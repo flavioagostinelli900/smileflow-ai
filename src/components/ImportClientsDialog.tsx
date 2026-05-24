@@ -215,7 +215,7 @@ export function ImportClientsDialog({ open, onOpenChange, onDone }: { open: bool
             <Card className="p-8 border-dashed border-2 text-center">
               <Upload className="size-10 mx-auto mb-3 text-muted-foreground" />
               <div className="text-sm font-medium mb-1">Carica file Excel (.xlsx) o CSV</div>
-              <div className="text-xs text-muted-foreground mb-4">Colonne richieste: Nome, Numero telefono, Data ultima visita, Note</div>
+              <div className="text-xs text-muted-foreground mb-4">Colonne supportate: Nome, Numero telefono, Data ultima visita, Data di nascita (opzionale), Note</div>
               <Input type="file" accept=".xlsx,.xls,.csv" onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} className="max-w-xs mx-auto" />
             </Card>
             {rows.length > 0 && (
