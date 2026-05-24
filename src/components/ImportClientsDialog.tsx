@@ -19,6 +19,7 @@ type Row = {
   last_name: string;
   phone: string;
   last_visit: string | null;
+  birth_date: string | null;
   notes: string;
   tag?: string;
 };
@@ -49,7 +50,8 @@ const parseDate = (v: unknown): string | null => {
 const normalizeRow = (raw: Record<string, unknown>): Row | null => {
   const nameKey = findKey(raw, ["nome", "name"]);
   const phoneKey = findKey(raw, ["telefono", "numero", "phone", "cellulare"]);
-  const dateKey = findKey(raw, ["ultimavisita", "lastvisit", "datavisita", "data"]);
+  const dateKey = findKey(raw, ["ultimavisita", "lastvisit", "datavisita"]);
+  const birthKey = findKey(raw, ["datanascita", "nascita", "birthdate", "birth", "dob"]);
   const notesKey = findKey(raw, ["note", "notes", "appunti"]);
   if (!nameKey || !phoneKey) return null;
   const fullName = String(raw[nameKey] ?? "").trim();
@@ -59,6 +61,7 @@ const normalizeRow = (raw: Record<string, unknown>): Row | null => {
     last_name: rest.join(" "),
     phone: String(raw[phoneKey] ?? "").trim(),
     last_visit: parseDate(raw[dateKey ?? ""]),
+    birth_date: birthKey ? parseDate(raw[birthKey]) : null,
     notes: notesKey ? String(raw[notesKey] ?? "").trim() : "",
   };
 };
