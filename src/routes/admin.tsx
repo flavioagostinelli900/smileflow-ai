@@ -245,9 +245,9 @@ function AdminPanel() {
         },
       });
     } catch (e: any) {
-      toast.error(`Studio creato, ma errore nell'account: ${e.message}. Puoi riprovare dalla scheda studio.`);
-      setStudioOpen(false);
-      qc.invalidateQueries({ queryKey: ["admin-studios"] });
+      // Rollback dello studio orfano per evitare entry senza account
+      await supabase.from("studios").delete().eq("id", inserted.id);
+      toast.error(`Errore creazione account: ${e?.message ?? "sconosciuto"}`);
       return;
     }
     setStudioOpen(false);
