@@ -128,13 +128,17 @@ function AdminPanel() {
   });
 
   const { data: staff } = useQuery({
-    queryKey: ["admin-staff"],
-    enabled: !loading && canAccess,
+    queryKey: ["admin-staff", isSuperAdmin],
+    enabled: !loading && (isSuperAdmin || isAuthorizedAdmin),
     queryFn: async () => {
+      const allowedRoles: AppRole[] = isSuperAdmin
+        ? ["super_admin", "authorized_admin", "support"]
+        : ["authorized_admin", "support"];
       const { data: roles } = await supabase
         .from("user_roles")
         .select("user_id, role, studio_id")
-        .in("role", ["super_admin", "authorized_admin", "support"]);
+        .in("role", allowedRoles);
+
       const ids = Array.from(new Set((roles ?? []).map((r) => r.user_id)));
       if (ids.length === 0) return [];
       const { data: profiles } = await supabase.from("profiles").select("id, full_name").in("id", ids);
