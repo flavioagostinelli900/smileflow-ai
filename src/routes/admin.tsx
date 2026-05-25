@@ -22,6 +22,7 @@ import { Eye, Pause, Play, Plus, Pencil, Trash2, Info, UserPlus, Copy, Mail, Che
 import { AdminSupportTickets } from "@/components/AdminSupportTickets";
 import { useServerFn } from "@tanstack/react-start";
 import { createStudioAccount } from "@/lib/studios.functions";
+import { createStaffAccount } from "@/lib/staff.functions";
 import { deleteStudio as deleteStudioFn } from "@/lib/delete-studio.functions";
 import { generateTempPassword } from "@/lib/password-utils";
 import {
@@ -89,8 +90,10 @@ function AdminPanel() {
   const qc = useQueryClient();
   const canAccess = isSuperAdmin || isAuthorizedAdmin;
   const createAccount = useServerFn(createStudioAccount);
+  const createStaffFn = useServerFn(createStaffAccount);
   const deleteStudioRpc = useServerFn(deleteStudioFn);
   const [credentials, setCredentials] = useState<null | { studio_name: string; first_name: string; email: string; password: string }>(null);
+  const [staffCredentials, setStaffCredentials] = useState<null | { studio_name: string; first_name: string; email: string; password: string }>(null);
   const [deleteTarget, setDeleteTarget] = useState<Studio | null>(null);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deletingStudio, setDeletingStudio] = useState(false);
@@ -242,9 +245,9 @@ function AdminPanel() {
         },
       });
     } catch (e: any) {
-      toast.error(`Studio creato, ma errore nell'account: ${e.message}. Puoi riprovare dalla scheda studio.`);
-      setStudioOpen(false);
-      qc.invalidateQueries({ queryKey: ["admin-studios"] });
+      // Rollback dello studio orfano per evitare entry senza account
+      await supabase.from("studios").delete().eq("id", inserted.id);
+      toast.error(`Errore creazione account: ${e?.message ?? "sconosciuto"}`);
       return;
     }
     setStudioOpen(false);
@@ -294,19 +297,25 @@ function AdminPanel() {
 
   // ---- Staff dialogs ----
   const [staffOpen, setStaffOpen] = useState(false);
+  const [staffName, setStaffName] = useState("");
   const [staffEmail, setStaffEmail] = useState("");
   const [staffRole, setStaffRole] = useState<AppRole>("support");
   const [staffStudios, setStaffStudios] = useState<string[]>([]);
   const [editStaff, setEditStaff] = useState<StaffRow | null>(null);
+  const [savingStaff, setSavingStaff] = useState(false);
 
   const studioIndex = useMemo(() => new Map(studios?.map((s) => [s.id, s.name])), [studios]);
 
-  const resetStaffForm = () => { setStaffEmail(""); setStaffRole("support"); setStaffStudios([]); setEditStaff(null); };
+  const resetStaffForm = () => {
+    setStaffName(""); setStaffEmail(""); setStaffRole("support");
+    setStaffStudios([]); setEditStaff(null);
+  };
 
   const openAddStaff = () => { resetStaffForm(); setStaffOpen(true); };
   const openEditStaff = (row: StaffRow) => {
     setEditStaff(row);
-    setStaffEmail(row.full_name ?? "");
+    setStaffName(row.full_name ?? "");
+    setStaffEmail("");
     setStaffRole((row.roles.find((r) => r !== "studio") ?? "support"));
     setStaffStudios(row.studio_ids);
     setStaffOpen(true);
@@ -314,29 +323,59 @@ function AdminPanel() {
 
   const saveStaff = async () => {
     if (!isSuperAdmin) return toast.error("Solo Super Admin può gestire lo staff");
-    let userId = editStaff?.user_id ?? null;
-    if (!userId) {
-      if (!staffEmail) return toast.error("Email utente richiesta");
-      const { data: prof } = await supabase
-        .from("profiles").select("id, full_name").ilike("full_name", `%${staffEmail}%`).limit(1).maybeSingle();
-      if (!prof?.id) return toast.error("Utente non trovato. Deve essersi già registrato.");
-      userId = prof.id;
+    setSavingStaff(true);
+    try {
+      // === CREAZIONE NUOVO MEMBRO STAFF ===
+      if (!editStaff) {
+        if (!staffName.trim()) { toast.error("Nome e cognome obbligatori"); return; }
+        if (!staffEmail.trim()) { toast.error("Email obbligatoria"); return; }
+        if (staffRole !== "authorized_admin" && staffRole !== "support") {
+          toast.error("Ruolo non valido per la creazione"); return;
+        }
+        const tempPassword = generateTempPassword(12);
+        try {
+          await createStaffFn({
+            data: {
+              email: staffEmail.trim(),
+              password: tempPassword,
+              full_name: staffName.trim(),
+              role: staffRole as "authorized_admin" | "support",
+              studio_ids: staffStudios,
+            },
+          });
+        } catch (e: any) {
+          toast.error(e?.message ?? "Errore creazione membro staff");
+          return;
+        }
+        setStaffOpen(false);
+        resetStaffForm();
+        qc.invalidateQueries({ queryKey: ["admin-staff"] });
+        setStaffCredentials({
+          studio_name: "DentAI Staff",
+          first_name: staffName.trim(),
+          email: staffEmail.trim(),
+          password: tempPassword,
+        });
+        return;
+      }
+
+      // === MODIFICA RUOLO/STUDI MEMBRO ESISTENTE ===
+      const userId = editStaff.user_id;
+      await supabase.from("user_roles").delete().eq("user_id", userId).in("role", ["super_admin", "authorized_admin", "support"]);
+      await supabase.from("admin_authorizations").delete().eq("admin_user_id", userId);
+      const { error: roleErr } = await supabase.from("user_roles").insert({ user_id: userId, role: staffRole });
+      if (roleErr) { toast.error(roleErr.message); return; }
+      if (staffStudios.length && (staffRole === "authorized_admin" || staffRole === "support")) {
+        const rows = staffStudios.map((studio_id) => ({ admin_user_id: userId, studio_id }));
+        const { error: authErr } = await supabase.from("admin_authorizations").insert(rows);
+        if (authErr) { toast.error(authErr.message); return; }
+      }
+      toast.success("Membro staff aggiornato");
+      setStaffOpen(false); resetStaffForm();
+      qc.invalidateQueries({ queryKey: ["admin-staff"] });
+    } finally {
+      setSavingStaff(false);
     }
-    // Reset existing staff roles + auths
-    await supabase.from("user_roles").delete().eq("user_id", userId).in("role", ["super_admin", "authorized_admin", "support"]);
-    await supabase.from("admin_authorizations").delete().eq("admin_user_id", userId);
-    // Insert new role
-    const { error: roleErr } = await supabase.from("user_roles").insert({ user_id: userId, role: staffRole });
-    if (roleErr) return toast.error(roleErr.message);
-    // Authorize for selected studios
-    if (staffStudios.length && (staffRole === "authorized_admin" || staffRole === "support")) {
-      const rows = staffStudios.map((studio_id) => ({ admin_user_id: userId!, studio_id }));
-      const { error: authErr } = await supabase.from("admin_authorizations").insert(rows);
-      if (authErr) return toast.error(authErr.message);
-    }
-    toast.success(editStaff ? "Membro staff aggiornato" : "Membro staff aggiunto");
-    setStaffOpen(false); resetStaffForm();
-    qc.invalidateQueries({ queryKey: ["admin-staff"] });
   };
 
   const removeStaff = async (row: StaffRow) => {
@@ -615,18 +654,29 @@ function AdminPanel() {
           <DialogHeader><DialogTitle>{editStaff ? "Modifica membro staff" : "Aggiungi membro staff"}</DialogTitle></DialogHeader>
           <div className="space-y-3">
             {!editStaff && (
-              <div>
-                <Label>Email utente (deve essere già registrato)</Label>
-                <Input value={staffEmail} onChange={(e) => setStaffEmail(e.target.value)} placeholder="utente@email.it" />
-              </div>
+              <>
+                <div>
+                  <Label>Nome e cognome</Label>
+                  <Input value={staffName} onChange={(e) => setStaffName(e.target.value)} placeholder="Mario Rossi" />
+                </div>
+                <div>
+                  <Label>Email</Label>
+                  <Input type="email" value={staffEmail} onChange={(e) => setStaffEmail(e.target.value)} placeholder="staff@dentai.it" />
+                </div>
+              </>
             )}
             <div>
               <Label>Ruolo</Label>
-              <select className="w-full h-10 border rounded-md px-2 bg-background" value={staffRole} onChange={(e) => setStaffRole(e.target.value as AppRole)}>
-                {STAFF_ROLE_OPTIONS.map((r) => <option key={r} value={r}>{roleLabel(r)}</option>)}
+              <select
+                className="w-full h-10 border rounded-md px-2 bg-background"
+                value={staffRole}
+                onChange={(e) => setStaffRole(e.target.value as AppRole)}
+              >
+                {(editStaff ? STAFF_ROLE_OPTIONS : (["authorized_admin", "support"] as AppRole[]))
+                  .map((r) => <option key={r} value={r}>{roleLabel(r)}</option>)}
               </select>
             </div>
-            {staffRole !== "super_admin" && (
+            {staffRole === "authorized_admin" && (
               <div>
                 <Label>Studi assegnati</Label>
                 <div className="border rounded-md p-2 max-h-44 overflow-y-auto space-y-1">
@@ -642,13 +692,24 @@ function AdminPanel() {
                 </div>
               </div>
             )}
+            {!editStaff && (
+              <p className="text-xs text-muted-foreground">
+                Verrà generata una password temporanea e mostrata nella prossima schermata. L'account viene creato senza email di conferma.
+              </p>
+            )}
           </div>
-          <DialogFooter><Button onClick={saveStaff}>{editStaff ? "Salva" : "Aggiungi"}</Button></DialogFooter>
+          <DialogFooter>
+            <Button onClick={saveStaff} disabled={savingStaff}>
+              {savingStaff ? "Creazione…" : editStaff ? "Salva" : "Crea membro staff"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* ---------- CREDENZIALI APPENA CREATE ---------- */}
       <CredentialsDialog data={credentials} onClose={() => setCredentials(null)} />
+      <CredentialsDialog data={staffCredentials} onClose={() => setStaffCredentials(null)} />
+
 
       {/* ---------- DIALOG ELIMINAZIONE STUDIO ---------- */}
       <Dialog open={!!deleteTarget} onOpenChange={(o) => { if (!o) { setDeleteTarget(null); setDeleteConfirmText(""); } }}>
