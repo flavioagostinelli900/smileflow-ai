@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import "@tanstack/react-start";
 import { generateText } from "ai";
 import { createClient } from "@supabase/supabase-js";
+import { authenticateRequest, genericError } from "@/lib/api-auth";
 
 const CLINICAL_SPECIFIC_PATTERNS = [
   /impiant[io]/i,
@@ -61,12 +62,26 @@ export const Route = createFileRoute("/api/chat")({
     handlers: {
       POST: async ({ request }: { request: Request }) => {
         try {
+          // AuthN: require a valid Supabase Bearer token.
+          const auth = await authenticateRequest(request);
+          if (!auth.ok) return auth.response;
+
           const { conversationId } = (await request.json()) as { conversationId: string };
           if (!conversationId) return new Response("conversationId required", { status: 400 });
 
           const key = process.env.LOVABLE_API_KEY;
-          if (!key) return new Response("Missing LOVABLE_API_KEY", { status: 500 });
+          if (!key) return genericError();
 
+          // AuthZ: verify caller has access to this conversation's studio (RLS-enforced).
+          const { data: convAuth, error: convAuthErr } = await auth.supabase
+            .from("conversations")
+            .select("id, studio_id")
+            .eq("id", conversationId)
+            .maybeSingle();
+          if (convAuthErr) return genericError();
+          if (!convAuth) return new Response("Forbidden", { status: 403 });
+
+          // Service-role client for downstream writes/joins.
           const supabase = createClient(
             process.env.SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL!,
             process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY!,
@@ -128,7 +143,7 @@ export const Route = createFileRoute("/api/chat")({
           return Response.json({ reply: text });
         } catch (e) {
           console.error("AI error", e);
-          return new Response((e as Error).message, { status: 500 });
+          return genericError();
         }
       },
     },
