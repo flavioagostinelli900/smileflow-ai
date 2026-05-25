@@ -365,6 +365,7 @@ function AdminPanel() {
       }
 
       // === MODIFICA RUOLO/STUDI MEMBRO ESISTENTE ===
+      if (!isSuperAdmin) { toast.error("Solo Super Admin può modificare i ruoli"); return; }
       const userId = editStaff.user_id;
       await supabase.from("user_roles").delete().eq("user_id", userId).in("role", ["super_admin", "authorized_admin", "support"]);
       await supabase.from("admin_authorizations").delete().eq("admin_user_id", userId);
