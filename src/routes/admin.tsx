@@ -415,9 +415,9 @@ function AdminPanel() {
       <Tabs defaultValue="studios" className="space-y-6">
         <TabsList>
           <TabsTrigger value="studios">Studi</TabsTrigger>
-          <TabsTrigger value="staff">Staff interno</TabsTrigger>
+          {!isSupport && <TabsTrigger value="staff">Staff interno</TabsTrigger>}
           <TabsTrigger value="tickets">Ticket supporto</TabsTrigger>
-          <TabsTrigger value="audit">Audit log</TabsTrigger>
+          {!isSupport && <TabsTrigger value="audit">Audit log</TabsTrigger>}
         </TabsList>
 
         {/* ---------- TAB STUDI ---------- */}
@@ -430,8 +430,21 @@ function AdminPanel() {
               </Button>
             </div>
 
-            <div className="w-full">
-              <Table className="w-full text-sm [&_th]:px-2 [&_th]:py-2 [&_th]:h-auto [&_th]:text-xs [&_td]:px-2 [&_td]:py-2 [&_td]:align-middle">
+            <div className="w-full overflow-x-auto -mx-6 px-6">
+              <Table className="w-full text-sm table-fixed min-w-[1200px] [&_th]:px-2 [&_th]:py-2 [&_th]:h-auto [&_th]:text-xs [&_th]:whitespace-nowrap [&_td]:px-2 [&_td]:py-2 [&_td]:align-middle [&_td]:truncate [&_td]:whitespace-nowrap [&_td]:overflow-hidden">
+                <colgroup>
+                  <col style={{ width: "15%" }} />
+                  <col style={{ width: "10%" }} />
+                  <col style={{ width: "15%" }} />
+                  <col style={{ width: "10%" }} />
+                  <col style={{ width: "8%" }} />
+                  <col style={{ width: "8%" }} />
+                  <col style={{ width: "10%" }} />
+                  <col style={{ width: "8%" }} />
+                  <col style={{ width: "8%" }} />
+                  <col style={{ width: "6%" }} />
+                  <col style={{ width: "12%" }} />
+                </colgroup>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Nome</TableHead>
@@ -456,40 +469,47 @@ function AdminPanel() {
                       </span>
                     </TableHead>
                     <TableHead>Stato</TableHead>
-                    <TableHead className="text-right whitespace-nowrap">Azioni</TableHead>
+                    <TableHead className="text-right">Azioni</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {studios?.map((s) => (
                     <TableRow key={s.id}>
-                      <TableCell className="font-medium whitespace-nowrap">{s.name}</TableCell>
-                      <TableCell className="whitespace-nowrap">{s.owner_name ?? "—"}</TableCell>
-                      <TableCell className="text-muted-foreground whitespace-nowrap">{s.email ?? "—"}</TableCell>
-                      <TableCell className="text-muted-foreground whitespace-nowrap">{s.phone ?? "—"}</TableCell>
-                      <TableCell><Badge variant="outline">{planLabel(s.plan)} · {s.billing_cycle === "annual" ? "Annuale" : "Mensile"}</Badge></TableCell>
-                      <TableCell className="whitespace-nowrap text-muted-foreground">{s.message_tier ? `${s.message_tier.toLocaleString("it-IT")} msg` : "—"}</TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        {priceForTier(s.plan, s.message_tier) != null
-                          ? <span className="font-medium">€{priceForTier(s.plan, s.message_tier)}<span className="text-xs text-muted-foreground font-normal">/mese</span></span>
-                          : <span className="text-muted-foreground">—</span>}
-                        <div className="text-[10px] text-muted-foreground">Setup €{SETUP_FEE[(["silver","gold","platinum"].includes(s.plan) ? s.plan : "silver") as PlanId]}</div>
+                      <TableCell className="font-medium" title={s.name}>{s.name}</TableCell>
+                      <TableCell title={s.owner_name ?? ""}>{s.owner_name ?? "—"}</TableCell>
+                      <TableCell className="text-muted-foreground" title={s.email ?? ""}>{s.email ?? "—"}</TableCell>
+                      <TableCell className="text-muted-foreground" title={s.phone ?? ""}>{s.phone ?? "—"}</TableCell>
+                      <TableCell>
+                        <div className="leading-tight">
+                          <div className="font-medium">{planLabel(s.plan)}</div>
+                          <div className="text-[10px] text-muted-foreground">{s.billing_cycle === "annual" ? "Annuale" : "Mensile"}</div>
+                        </div>
                       </TableCell>
-                      <TableCell className="whitespace-nowrap text-muted-foreground">
+                      <TableCell className="text-muted-foreground">{s.message_tier ? `${s.message_tier.toLocaleString("it-IT")} msg` : "—"}</TableCell>
+                      <TableCell>
+                        <div className="leading-tight">
+                          {priceForTier(s.plan, s.message_tier) != null
+                            ? <div className="font-medium">€{priceForTier(s.plan, s.message_tier)}<span className="text-xs text-muted-foreground font-normal">/mese</span></div>
+                            : <div className="text-muted-foreground">—</div>}
+                          <div className="text-[10px] text-muted-foreground">Setup €{SETUP_FEE[(["silver","gold","platinum"].includes(s.plan) ? s.plan : "silver") as PlanId]}</div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
                         {s.subscription_expires_at ? new Date(s.subscription_expires_at).toLocaleDateString("it-IT") : "—"}
                       </TableCell>
-                      <TableCell className="whitespace-nowrap">{renewalBadge(s.subscription_expires_at)}</TableCell>
+                      <TableCell>{renewalBadge(s.subscription_expires_at)}</TableCell>
                       <TableCell>
                         <Badge variant={s.status === "active" ? "default" : "secondary"}>
                           {s.status === "active" ? "Attivo" : "Sospeso"}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right space-x-1 whitespace-nowrap">
+                      <TableCell className="text-right space-x-1">
                         <Button size="sm" variant="outline" onClick={() => manage(s)}><Eye className="size-3.5 mr-1" />Gestisci</Button>
                         <Button size="sm" variant="ghost" onClick={() => openEdit(s)}><Pencil className="size-3.5" /></Button>
                         <Button size="sm" variant="ghost" onClick={() => toggleStatus(s)}>
                           {s.status === "active" ? <Pause className="size-3.5" /> : <Play className="size-3.5" />}
                         </Button>
-                        {isSuperAdmin && (
+                        {canDeleteStudio ? (
                           <Button
                             size="sm"
                             variant="ghost"
@@ -499,7 +519,18 @@ function AdminPanel() {
                           >
                             <Trash2 className="size-3.5" />
                           </Button>
-                        )}
+                        ) : isSupport ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span tabIndex={0} className="inline-block">
+                                <Button size="sm" variant="ghost" disabled className="text-muted-foreground/50 cursor-not-allowed pointer-events-none">
+                                  <Trash2 className="size-3.5" />
+                                </Button>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>{NO_PERM_TOOLTIP}</TooltipContent>
+                          </Tooltip>
+                        ) : null}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -508,6 +539,7 @@ function AdminPanel() {
             </div>
           </Card>
         </TabsContent>
+
 
         {/* ---------- TAB STAFF ---------- */}
         <TabsContent value="staff">
