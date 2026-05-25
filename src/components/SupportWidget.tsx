@@ -236,13 +236,15 @@ export function SupportWidget() {
 
     setSofiaLoading(true);
     try {
-      const r = await fetch("/api/sofia", {
+      const { fetchWithAuth } = await import("@/lib/fetch-with-auth");
+      const r = await fetchWithAuth("/api/sofia", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: nextHistory.map(({ role, content }) => ({ role, content })),
         }),
       });
+
       const json = await r.json();
       const reply: SofiaMsg = { role: "assistant", content: json.reply ?? "Mi spiace, riprova.", ts: Date.now() };
       setSofiaMsgs([...nextHistory, reply]);

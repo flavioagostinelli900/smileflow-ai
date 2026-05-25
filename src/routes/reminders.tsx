@@ -65,10 +65,12 @@ function Reminders() {
   const cancellationFlow = reminders.filter((r) => r.cancellation_state).slice(0, 12);
 
   const simulateMessage = async (r: ReminderRow, message: string) => {
-    const res = await fetch("/api/reminder-respond", {
+    const { fetchWithAuth } = await import("@/lib/fetch-with-auth");
+    const res = await fetchWithAuth("/api/reminder-respond", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ reminderId: r.id, message }),
     });
+
     if (!res.ok) { toast.error("Errore: " + (await res.text())); return; }
     const json = await res.json() as { action: string; reply: string | null };
     if (json.action === "slots_proposed") toast.success("AI ha proposto 2 slot al paziente");

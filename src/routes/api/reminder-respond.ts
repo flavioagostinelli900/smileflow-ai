@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import "@tanstack/react-start";
 import { createClient } from "@supabase/supabase-js";
+import { authenticateRequest, genericError } from "@/lib/api-auth";
+
 
 const CANCEL_KEYWORDS = ["no", "annullo", "annulla", "non posso", "disdico", "disdire", "cancella", "cancello"];
 const CONFIRM_KEYWORDS = ["si", "sì", "ok", "confermo", "perfetto", "va bene"];
@@ -29,13 +31,26 @@ export const Route = createFileRoute("/api/reminder-respond")({
     handlers: {
       POST: async ({ request }: { request: Request }) => {
         try {
+          const auth = await authenticateRequest(request);
+          if (!auth.ok) return auth.response;
+
           const { reminderId, message } = (await request.json()) as { reminderId: string; message: string };
           if (!reminderId || !message) return new Response("missing params", { status: 400 });
+
+          // AuthZ: ensure caller can access this reminder via RLS.
+          const { data: remAuth, error: remAuthErr } = await auth.supabase
+            .from("reminders")
+            .select("id, studio_id")
+            .eq("id", reminderId)
+            .maybeSingle();
+          if (remAuthErr) return genericError();
+          if (!remAuth) return new Response("Forbidden", { status: 403 });
 
           const supabase = createClient(
             process.env.SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL!,
             process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY!,
           );
+
 
           const { data: reminder } = await supabase.from("reminders").select("*, client:clients(*)").eq("id", reminderId).single();
           if (!reminder) return new Response("reminder not found", { status: 404 });
@@ -112,7 +127,7 @@ export const Route = createFileRoute("/api/reminder-respond")({
           return Response.json({ action: "ignored", reply: null });
         } catch (e) {
           console.error("reminder-respond error", e);
-          return new Response((e as Error).message, { status: 500 });
+          return genericError();
         }
       },
     },

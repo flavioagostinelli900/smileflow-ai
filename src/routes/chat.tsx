@@ -129,10 +129,12 @@ function Chat() {
         await qc.invalidateQueries({ queryKey: ["messages", active] });
         await qc.invalidateQueries({ queryKey: ["conversations"] });
       } else {
-        const res = await fetch("/api/chat", {
+        const { fetchWithAuth } = await import("@/lib/fetch-with-auth");
+        const res = await fetchWithAuth("/api/chat", {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ conversationId: active }),
         });
+
         if (!res.ok) throw new Error(await res.text());
         await qc.invalidateQueries({ queryKey: ["messages", active] });
         await qc.invalidateQueries({ queryKey: ["conversations"] });

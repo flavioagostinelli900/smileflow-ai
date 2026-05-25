@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import "@tanstack/react-start";
 import { generateText } from "ai";
 import { createLovableAiGatewayProvider } from "@/lib/ai-gateway";
+import { authenticateRequest, genericError } from "@/lib/api-auth";
 
 type ChatMsg = { role: "user" | "assistant"; content: string };
 
@@ -10,12 +11,15 @@ export const Route = createFileRoute("/api/sofia")({
     handlers: {
       POST: async ({ request }) => {
         try {
+          const auth = await authenticateRequest(request);
+          if (!auth.ok) return auth.response;
+
           const { messages } = (await request.json()) as { messages: ChatMsg[] };
           if (!Array.isArray(messages)) {
             return new Response("messages required", { status: 400 });
           }
           const key = process.env.LOVABLE_API_KEY;
-          if (!key) return new Response("Missing LOVABLE_API_KEY", { status: 500 });
+          if (!key) return genericError();
 
           const system =
             "Sei Sofia, l'assistente virtuale di DentAI, una piattaforma SaaS per studi dentistici. " +
@@ -38,9 +42,10 @@ export const Route = createFileRoute("/api/sofia")({
           return Response.json({ reply: text });
         } catch (e) {
           console.error("Sofia error", e);
-          return new Response((e as Error).message, { status: 500 });
+          return genericError();
         }
       },
     },
   },
 });
+
