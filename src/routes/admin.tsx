@@ -85,15 +85,19 @@ function roleLabel(r: AppRole) {
 }
 
 function AdminPanel() {
-  const { isSuperAdmin, isAuthorizedAdmin, loading } = usePermissions();
+  const { isSuperAdmin, isAuthorizedAdmin, isSupport, loading } = usePermissions();
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const canAccess = isSuperAdmin || isAuthorizedAdmin;
+  const canAccess = isSuperAdmin || isAuthorizedAdmin || isSupport;
+  const canEditStaff = isSuperAdmin || isAuthorizedAdmin;
+  const canDeleteStudio = isSuperAdmin;
+  const NO_PERM_TOOLTIP = "Non hai i permessi per questa azione. Contatta un Admin Autorizzato.";
   const createAccount = useServerFn(createStudioAccount);
   const createStaffFn = useServerFn(createStaffAccount);
   const deleteStudioRpc = useServerFn(deleteStudioFn);
   const [credentials, setCredentials] = useState<null | { studio_name: string; first_name: string; email: string; password: string }>(null);
   const [staffCredentials, setStaffCredentials] = useState<null | { studio_name: string; first_name: string; email: string; password: string }>(null);
+
   const [deleteTarget, setDeleteTarget] = useState<Studio | null>(null);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deletingStudio, setDeletingStudio] = useState(false);
