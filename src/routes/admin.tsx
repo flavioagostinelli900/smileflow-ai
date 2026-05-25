@@ -749,38 +749,56 @@ function CredentialsDialog({
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Account creato</DialogTitle>
+          <DialogTitle>Account creato con successo</DialogTitle>
         </DialogHeader>
         <p className="text-sm text-muted-foreground">
-          Puoi inviare le credenziali allo studio quando sei pronto. Non è stata mandata nessuna email automatica.
+          Salva o copia subito la password temporanea: per motivi di sicurezza non sarà più
+          visibile dopo aver chiuso questa finestra. Non è stata inviata nessuna email automatica.
         </p>
-        <div className="space-y-2 mt-2">
-          <div className="rounded-md border p-3 space-y-2 bg-muted/30">
-            <div className="flex items-center justify-between text-sm">
-              <div><span className="text-muted-foreground">Studio:</span> <span className="font-medium">{data.studio_name}</span></div>
-            </div>
-            <div className="flex items-center justify-between gap-2 text-sm">
-              <div className="truncate"><span className="text-muted-foreground">Email:</span> <span className="font-mono">{data.email}</span></div>
-              <Button size="sm" variant="ghost" onClick={() => copy("email", data.email)}>
-                {copied === "email" ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+        <div className="space-y-3 mt-2">
+          <div className="rounded-md border p-3 bg-muted/30 text-sm">
+            <div className="text-muted-foreground text-xs mb-0.5">Studio</div>
+            <div className="font-medium">{data.studio_name}</div>
+          </div>
+          <div className="rounded-md border p-3 bg-muted/30">
+            <div className="text-muted-foreground text-xs mb-1">Email di accesso</div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-mono text-sm truncate">{data.email}</span>
+              <Button size="sm" variant="outline" onClick={() => copy("email", data.email)}>
+                {copied === "email" ? <Check className="size-3.5 mr-1.5" /> : <Copy className="size-3.5 mr-1.5" />}
+                {copied === "email" ? "Copiata" : "Copia email"}
               </Button>
             </div>
-            <div className="flex items-center justify-between gap-2 text-sm">
-              <div className="truncate"><span className="text-muted-foreground">Password:</span> <span className="font-mono">{data.password}</span></div>
-              <Button size="sm" variant="ghost" onClick={() => copy("pw", data.password)}>
-                {copied === "pw" ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+          </div>
+          <div className="rounded-md border-2 border-primary/40 p-3 bg-primary/5">
+            <div className="text-primary text-xs font-medium mb-1">Password temporanea</div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-mono text-base font-semibold tracking-wide select-all">
+                {data.password}
+              </span>
+              <Button
+                size="sm"
+                className="bg-gradient-primary shrink-0"
+                onClick={() => copy("pw", data.password)}
+              >
+                {copied === "pw" ? <Check className="size-3.5 mr-1.5" /> : <Copy className="size-3.5 mr-1.5" />}
+                {copied === "pw" ? "Copiata" : "Copia password"}
               </Button>
             </div>
+            <p className="text-[11px] text-muted-foreground mt-2">
+              Lo studio dovrà cambiarla al primo accesso.
+            </p>
           </div>
         </div>
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={onClose}>Chiudi</Button>
-          <Button className="bg-gradient-primary" onClick={sendEmail}>
-            <Mail className="size-4 mr-1.5" /> Invia credenziali ora
+          <Button variant="secondary" onClick={sendEmail}>
+            <Mail className="size-4 mr-1.5" /> Invia via email
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
+
 
