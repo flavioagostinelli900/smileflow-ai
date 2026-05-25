@@ -654,18 +654,29 @@ function AdminPanel() {
           <DialogHeader><DialogTitle>{editStaff ? "Modifica membro staff" : "Aggiungi membro staff"}</DialogTitle></DialogHeader>
           <div className="space-y-3">
             {!editStaff && (
-              <div>
-                <Label>Email utente (deve essere già registrato)</Label>
-                <Input value={staffEmail} onChange={(e) => setStaffEmail(e.target.value)} placeholder="utente@email.it" />
-              </div>
+              <>
+                <div>
+                  <Label>Nome e cognome</Label>
+                  <Input value={staffName} onChange={(e) => setStaffName(e.target.value)} placeholder="Mario Rossi" />
+                </div>
+                <div>
+                  <Label>Email</Label>
+                  <Input type="email" value={staffEmail} onChange={(e) => setStaffEmail(e.target.value)} placeholder="staff@dentai.it" />
+                </div>
+              </>
             )}
             <div>
               <Label>Ruolo</Label>
-              <select className="w-full h-10 border rounded-md px-2 bg-background" value={staffRole} onChange={(e) => setStaffRole(e.target.value as AppRole)}>
-                {STAFF_ROLE_OPTIONS.map((r) => <option key={r} value={r}>{roleLabel(r)}</option>)}
+              <select
+                className="w-full h-10 border rounded-md px-2 bg-background"
+                value={staffRole}
+                onChange={(e) => setStaffRole(e.target.value as AppRole)}
+              >
+                {(editStaff ? STAFF_ROLE_OPTIONS : (["authorized_admin", "support"] as AppRole[]))
+                  .map((r) => <option key={r} value={r}>{roleLabel(r)}</option>)}
               </select>
             </div>
-            {staffRole !== "super_admin" && (
+            {staffRole === "authorized_admin" && (
               <div>
                 <Label>Studi assegnati</Label>
                 <div className="border rounded-md p-2 max-h-44 overflow-y-auto space-y-1">
@@ -681,13 +692,24 @@ function AdminPanel() {
                 </div>
               </div>
             )}
+            {!editStaff && (
+              <p className="text-xs text-muted-foreground">
+                Verrà generata una password temporanea e mostrata nella prossima schermata. L'account viene creato senza email di conferma.
+              </p>
+            )}
           </div>
-          <DialogFooter><Button onClick={saveStaff}>{editStaff ? "Salva" : "Aggiungi"}</Button></DialogFooter>
+          <DialogFooter>
+            <Button onClick={saveStaff} disabled={savingStaff}>
+              {savingStaff ? "Creazione…" : editStaff ? "Salva" : "Crea membro staff"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* ---------- CREDENZIALI APPENA CREATE ---------- */}
       <CredentialsDialog data={credentials} onClose={() => setCredentials(null)} />
+      <CredentialsDialog data={staffCredentials} onClose={() => setStaffCredentials(null)} />
+
 
       {/* ---------- DIALOG ELIMINAZIONE STUDIO ---------- */}
       <Dialog open={!!deleteTarget} onOpenChange={(o) => { if (!o) { setDeleteTarget(null); setDeleteConfirmText(""); } }}>
