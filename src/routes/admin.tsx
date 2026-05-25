@@ -420,8 +420,8 @@ function AdminPanel() {
               </Button>
             </div>
 
-            <div className="overflow-x-auto -mx-6 px-6">
-              <Table className="[&_th]:px-4 [&_th]:py-3 [&_th]:h-auto [&_th]:align-bottom [&_td]:px-4 [&_td]:py-4 [&_td]:align-middle min-w-[1100px]">
+            <div className="w-full">
+              <Table className="w-full text-sm [&_th]:px-2 [&_th]:py-2 [&_th]:h-auto [&_th]:text-xs [&_td]:px-2 [&_td]:py-2 [&_td]:align-middle">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Nome</TableHead>
