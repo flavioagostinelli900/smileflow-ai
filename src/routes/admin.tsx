@@ -678,7 +678,11 @@ function AdminPanel() {
                 value={staffRole}
                 onChange={(e) => setStaffRole(e.target.value as AppRole)}
               >
-                {(editStaff ? STAFF_ROLE_OPTIONS : (["authorized_admin", "support"] as AppRole[]))
+                {(editStaff
+                  ? STAFF_ROLE_OPTIONS
+                  : (isSuperAdmin
+                      ? (["super_admin", "authorized_admin", "support"] as AppRole[])
+                      : (["authorized_admin", "support"] as AppRole[])))
                   .map((r) => <option key={r} value={r}>{roleLabel(r)}</option>)}
               </select>
             </div>
