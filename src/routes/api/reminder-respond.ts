@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import "@tanstack/react-start";
 import { createClient } from "@supabase/supabase-js";
+import { authenticateRequest, genericError } from "@/lib/api-auth";
+
 
 const CANCEL_KEYWORDS = ["no", "annullo", "annulla", "non posso", "disdico", "disdire", "cancella", "cancello"];
 const CONFIRM_KEYWORDS = ["si", "sì", "ok", "confermo", "perfetto", "va bene"];
