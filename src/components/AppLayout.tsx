@@ -190,7 +190,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 <div className="min-w-0">
                   <div className="text-sm font-medium truncate">{user?.user_metadata?.full_name || user?.email}</div>
                   <div className="text-[11px] text-muted-foreground">
-                    {isSuperAdmin ? "Super Admin" : isAuthorizedAdmin ? "Admin Autorizzato" : "Account Studio"}
+                    {isSuperAdmin ? "Super Admin" : isAuthorizedAdmin ? "Admin Autorizzato" : isSupport ? "Supporto" : "Account Studio"}
                   </div>
                 </div>
               </DropdownMenuLabel>
