@@ -106,11 +106,13 @@ export function ImportClientsDialog({ open, onOpenChange, onDone }: { open: bool
   const runAI = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/tag-clients", {
+      const { fetchWithAuth } = await import("@/lib/fetch-with-auth");
+      const res = await fetchWithAuth("/api/tag-clients", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ rows: rows.map((r) => ({ name: `${r.first_name} ${r.last_name}`, notes: r.notes })) }),
       });
+
       if (!res.ok) throw new Error(await res.text());
       const { tags } = (await res.json()) as { tags: string[] };
       setRows((prev) => prev.map((r, i) => ({ ...r, tag: tags[i] || "CONTROLLO" })));
