@@ -11,52 +11,91 @@ const CreateStudioSchema = z.object({
 });
 
 /**
- * Creates the auth user for a freshly-created studio, attaches it to the studio
- * row and assigns the 'studio' role. Email is pre-confirmed so no verification
- * mail is sent. Only super_admins / authorized admins may invoke this.
+ * Crea l'utente Supabase Auth per uno studio appena creato, lo collega
+ * alla riga studios e assegna il ruolo 'studio'. La password viene impostata
+ * tramite Admin API e l'email è pre-confermata (nessuna mail di verifica).
+ * Solo super_admin / authorized_admin possono invocare.
  */
 export const createStudioAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => CreateStudioSchema.parse(d))
   .handler(async ({ data, context }) => {
     const { userId } = context;
-    // Verify caller is staff (super_admin or authorized_admin)
-    const { data: roles } = await supabaseAdmin
+
+    // Verifica chiamante (super_admin o authorized_admin)
+    const { data: roles, error: rolesErr } = await supabaseAdmin
       .from("user_roles")
       .select("role")
       .eq("user_id", userId);
-    const isStaff = (roles ?? []).some((r) => r.role === "super_admin" || r.role === "authorized_admin");
+    if (rolesErr) throw new Error(`Verifica permessi fallita: ${rolesErr.message}`);
+    const isStaff = (roles ?? []).some(
+      (r) => r.role === "super_admin" || r.role === "authorized_admin",
+    );
     if (!isStaff) throw new Error("Permesso negato");
 
-    // Create the user without email confirmation flow
+    // Crea utente con password e email pre-confermata
+    let newUserId: string | null = null;
     const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
       email: data.email,
       password: data.password,
-      email_confirm: true, // pre-confirmed: no verification email
+      email_confirm: true,
       user_metadata: {
         full_name: data.first_name ?? data.email.split("@")[0],
         requires_password_change: true,
         studio_id: data.studio_id,
       },
     });
-    if (createErr || !created.user) throw new Error(createErr?.message ?? "Creazione utente fallita");
 
-    const newUserId = created.user.id;
+    if (createErr) {
+      // Email già registrata → recuperiamo l'utente esistente e ne aggiorniamo la password
+      if (/already (registered|exists)|duplicate/i.test(createErr.message)) {
+        const { data: list, error: listErr } = await supabaseAdmin.auth.admin.listUsers({
+          page: 1,
+          perPage: 200,
+        });
+        if (listErr) throw new Error(`Lookup utente fallito: ${listErr.message}`);
+        const existing = list.users.find(
+          (u) => u.email?.toLowerCase() === data.email.toLowerCase(),
+        );
+        if (!existing) throw new Error(`Creazione utente fallita: ${createErr.message}`);
+        newUserId = existing.id;
+        const { error: updErr } = await supabaseAdmin.auth.admin.updateUserById(existing.id, {
+          password: data.password,
+          email_confirm: true,
+          user_metadata: {
+            ...(existing.user_metadata ?? {}),
+            full_name: data.first_name ?? existing.user_metadata?.full_name ?? data.email,
+            requires_password_change: true,
+            studio_id: data.studio_id,
+          },
+        });
+        if (updErr) throw new Error(`Aggiornamento password fallito: ${updErr.message}`);
+      } else {
+        throw new Error(`Creazione utente fallita: ${createErr.message}`);
+      }
+    } else {
+      newUserId = created.user?.id ?? null;
+    }
+    if (!newUserId) throw new Error("Creazione utente fallita: id mancante");
 
-    // Ensure profile exists (handle_new_user trigger usually does this; upsert is safe)
+    // Profilo (handle_new_user di solito lo crea; upsert è sicuro)
     await supabaseAdmin
       .from("profiles")
       .upsert({ id: newUserId, full_name: data.first_name ?? data.email });
 
-    // Assign 'studio' role (replace whatever promote_first_user trigger inserted)
+    // Imposta il ruolo 'studio' (rimuovendo eventuali ruoli del trigger)
     await supabaseAdmin.from("user_roles").delete().eq("user_id", newUserId);
     const { error: roleErr } = await supabaseAdmin
       .from("user_roles")
       .insert({ user_id: newUserId, role: "studio", studio_id: data.studio_id });
-    if (roleErr) throw new Error(roleErr.message);
+    if (roleErr) throw new Error(`Assegnazione ruolo fallita: ${roleErr.message}`);
 
-    // Link studio -> owner
-    await supabaseAdmin.from("studios").update({ owner_user_id: newUserId }).eq("id", data.studio_id);
+    // Collega lo studio al proprietario
+    const { error: linkErr } = await supabaseAdmin
+      .from("studios")
+      .update({ owner_user_id: newUserId })
+      .eq("id", data.studio_id);
+    if (linkErr) throw new Error(`Collegamento studio fallito: ${linkErr.message}`);
 
     return { user_id: newUserId };
   });
