@@ -507,7 +507,7 @@ function AdminPanel() {
                 <h3 className="font-semibold">Staff interno DentAI</h3>
                 <p className="text-xs text-muted-foreground">Membri con accesso amministrativo separati dagli account studio.</p>
               </div>
-              {isSuperAdmin && (
+              {(isSuperAdmin || isAuthorizedAdmin) && (
                 <Button size="sm" className="bg-gradient-primary" onClick={openAddStaff}>
                   <UserPlus className="size-4 mr-1.5" />Aggiungi membro staff
                 </Button>
