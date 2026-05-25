@@ -322,15 +322,19 @@ function AdminPanel() {
   };
 
   const saveStaff = async () => {
-    if (!isSuperAdmin) return toast.error("Solo Super Admin può gestire lo staff");
+    const canCreate = isSuperAdmin || isAuthorizedAdmin;
+    if (!canCreate) return toast.error("Permessi insufficienti");
     setSavingStaff(true);
     try {
       // === CREAZIONE NUOVO MEMBRO STAFF ===
       if (!editStaff) {
         if (!staffName.trim()) { toast.error("Nome e cognome obbligatori"); return; }
         if (!staffEmail.trim()) { toast.error("Email obbligatoria"); return; }
-        if (staffRole !== "authorized_admin" && staffRole !== "support") {
-          toast.error("Ruolo non valido per la creazione"); return;
+        const allowed: AppRole[] = isSuperAdmin
+          ? ["super_admin", "authorized_admin", "support"]
+          : ["authorized_admin", "support"];
+        if (!allowed.includes(staffRole)) {
+          toast.error("Ruolo non consentito"); return;
         }
         const tempPassword = generateTempPassword(12);
         try {
@@ -339,10 +343,11 @@ function AdminPanel() {
               email: staffEmail.trim(),
               password: tempPassword,
               full_name: staffName.trim(),
-              role: staffRole as "authorized_admin" | "support",
+              role: staffRole as "super_admin" | "authorized_admin" | "support",
               studio_ids: staffStudios,
             },
           });
+
         } catch (e: any) {
           toast.error(e?.message ?? "Errore creazione membro staff");
           return;
@@ -360,6 +365,7 @@ function AdminPanel() {
       }
 
       // === MODIFICA RUOLO/STUDI MEMBRO ESISTENTE ===
+      if (!isSuperAdmin) { toast.error("Solo Super Admin può modificare i ruoli"); return; }
       const userId = editStaff.user_id;
       await supabase.from("user_roles").delete().eq("user_id", userId).in("role", ["super_admin", "authorized_admin", "support"]);
       await supabase.from("admin_authorizations").delete().eq("admin_user_id", userId);
@@ -501,7 +507,7 @@ function AdminPanel() {
                 <h3 className="font-semibold">Staff interno DentAI</h3>
                 <p className="text-xs text-muted-foreground">Membri con accesso amministrativo separati dagli account studio.</p>
               </div>
-              {isSuperAdmin && (
+              {(isSuperAdmin || isAuthorizedAdmin) && (
                 <Button size="sm" className="bg-gradient-primary" onClick={openAddStaff}>
                   <UserPlus className="size-4 mr-1.5" />Aggiungi membro staff
                 </Button>
@@ -672,7 +678,11 @@ function AdminPanel() {
                 value={staffRole}
                 onChange={(e) => setStaffRole(e.target.value as AppRole)}
               >
-                {(editStaff ? STAFF_ROLE_OPTIONS : (["authorized_admin", "support"] as AppRole[]))
+                {(editStaff
+                  ? STAFF_ROLE_OPTIONS
+                  : (isSuperAdmin
+                      ? (["super_admin", "authorized_admin", "support"] as AppRole[])
+                      : (["authorized_admin", "support"] as AppRole[])))
                   .map((r) => <option key={r} value={r}>{roleLabel(r)}</option>)}
               </select>
             </div>

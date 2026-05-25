@@ -7,13 +7,14 @@ const Schema = z.object({
   email: z.string().trim().email().max(255),
   password: z.string().min(8).max(128),
   full_name: z.string().trim().min(1).max(160),
-  role: z.enum(["authorized_admin", "support"]),
+  role: z.enum(["super_admin", "authorized_admin", "support"]),
   studio_ids: z.array(z.string().uuid()).max(200).optional().default([]),
 });
 
 /**
- * Crea un account staff interno (Admin Autorizzato / Supporto) usando
- * la Admin API. Solo super_admin può invocare.
+ * Crea un account staff interno usando la Admin API.
+ * - super_admin: può creare super_admin, authorized_admin, support
+ * - authorized_admin: può creare solo authorized_admin e support
  */
 export const createStaffAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -21,14 +22,22 @@ export const createStaffAccount = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { userId } = context;
 
-    // Verifica super_admin
+    // Verifica permessi del chiamante
     const { data: roles, error: rolesErr } = await supabaseAdmin
       .from("user_roles")
       .select("role")
       .eq("user_id", userId);
     if (rolesErr) throw new Error(`Verifica permessi fallita: ${rolesErr.message}`);
-    const isSuper = (roles ?? []).some((r) => r.role === "super_admin");
-    if (!isSuper) throw new Error("Solo Super Admin può creare membri staff");
+    const callerRoles = (roles ?? []).map((r) => r.role);
+    const isSuper = callerRoles.includes("super_admin");
+    const isAuthorized = callerRoles.includes("authorized_admin");
+    if (!isSuper && !isAuthorized) {
+      throw new Error("Permessi insufficienti per creare membri staff");
+    }
+    if (data.role === "super_admin" && !isSuper) {
+      throw new Error("Solo Super Admin può creare altri Super Admin");
+    }
+
 
     // Crea utente Auth con password preimpostata ed email pre-confermata
     let newUserId: string | null = null;
