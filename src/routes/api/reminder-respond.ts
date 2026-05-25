@@ -127,7 +127,7 @@ export const Route = createFileRoute("/api/reminder-respond")({
           return Response.json({ action: "ignored", reply: null });
         } catch (e) {
           console.error("reminder-respond error", e);
-          return new Response((e as Error).message, { status: 500 });
+          return genericError();
         }
       },
     },
