@@ -22,6 +22,7 @@ import { Eye, Pause, Play, Plus, Pencil, Trash2, Info, UserPlus, Copy, Mail, Che
 import { AdminSupportTickets } from "@/components/AdminSupportTickets";
 import { useServerFn } from "@tanstack/react-start";
 import { createStudioAccount } from "@/lib/studios.functions";
+import { createStaffAccount } from "@/lib/staff.functions";
 import { deleteStudio as deleteStudioFn } from "@/lib/delete-studio.functions";
 import { generateTempPassword } from "@/lib/password-utils";
 import {
