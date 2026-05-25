@@ -54,23 +54,24 @@ export function usePermissions() {
   const permissionsReady = !authLoading && !loading;
   const isSuperAdmin = permissionsReady && roles.includes("super_admin");
   const isAuthorizedAdmin = permissionsReady && (roles.includes("authorized_admin") || authorizedStudios.length > 0);
-  const isStudio = permissionsReady && !isSuperAdmin && !isAuthorizedAdmin;
+  const isSupport = permissionsReady && roles.includes("support") && !isSuperAdmin && !isAuthorizedAdmin;
+  const isStaff = isSuperAdmin || isAuthorizedAdmin || isSupport;
+  const isStudio = permissionsReady && !isStaff;
 
   // Quando un super admin impersona uno studio, l'UI si comporta come uno studio
-  const effectiveCanManage = permissionsReady && isSuperAdmin && !impersonated
-    ? true
-    : isAuthorizedAdmin && !impersonated
-      ? true
-      : false;
+  const effectiveCanManage = permissionsReady && (isSuperAdmin || isAuthorizedAdmin) && !impersonated;
 
   return {
     loading: !permissionsReady,
     roles,
     isSuperAdmin,
     isAuthorizedAdmin,
+    isSupport,
+    isStaff,
     isStudio,
     canManage: effectiveCanManage,
     impersonatedStudioId: impersonated,
     setImpersonated: setImpersonatedStudioId,
   };
 }
+

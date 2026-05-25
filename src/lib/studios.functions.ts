@@ -29,9 +29,10 @@ export const createStudioAccount = createServerFn({ method: "POST" })
       .eq("user_id", userId);
     if (rolesErr) throw new Error(`Verifica permessi fallita: ${rolesErr.message}`);
     const isStaff = (roles ?? []).some(
-      (r) => r.role === "super_admin" || r.role === "authorized_admin",
+      (r) => r.role === "super_admin" || r.role === "authorized_admin" || r.role === "support",
     );
     if (!isStaff) throw new Error("Permesso negato");
+
 
     // Crea utente con password e email pre-confermata
     let newUserId: string | null = null;
