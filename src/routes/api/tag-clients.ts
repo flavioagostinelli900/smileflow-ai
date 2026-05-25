@@ -2,6 +2,7 @@ import { createLovableAiGatewayProvider } from "@/lib/ai-gateway";
 import { createFileRoute } from "@tanstack/react-router";
 import "@tanstack/react-start";
 import { generateText } from "ai";
+import { authenticateRequest, genericError } from "@/lib/api-auth";
 
 const TAGS = ["IGIENE", "CONTROLLO", "CHIRURGIA", "ORTODONZIA", "IMPLANTOLOGIA", "CONSERVATIVA"];
 
@@ -10,11 +11,15 @@ export const Route = createFileRoute("/api/tag-clients")({
     handlers: {
       POST: async ({ request }: { request: Request }) => {
         try {
+          const auth = await authenticateRequest(request);
+          if (!auth.ok) return auth.response;
+
           const { rows } = (await request.json()) as { rows: { name: string; notes: string }[] };
           if (!Array.isArray(rows)) return new Response("rows required", { status: 400 });
+          if (rows.length > 200) return new Response("too many rows", { status: 400 });
 
           const key = process.env.LOVABLE_API_KEY;
-          if (!key) return new Response("Missing LOVABLE_API_KEY", { status: 500 });
+          if (!key) return genericError();
 
           const gateway = createLovableAiGatewayProvider(key);
           const list = rows.map((r, i) => `${i}|${r.name}|${(r.notes || "").replace(/\n/g, " ").slice(0, 200)}`).join("\n");
@@ -33,9 +38,10 @@ export const Route = createFileRoute("/api/tag-clients")({
           return Response.json({ tags });
         } catch (e) {
           console.error("tag error", e);
-          return new Response((e as Error).message, { status: 500 });
+          return genericError();
         }
       },
     },
   },
 });
+
