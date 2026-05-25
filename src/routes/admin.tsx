@@ -415,7 +415,7 @@ function AdminPanel() {
             </div>
 
             <div className="overflow-x-auto -mx-6 px-6">
-              <Table>
+              <Table className="[&_th]:px-4 [&_th]:py-3 [&_th]:h-auto [&_th]:align-bottom [&_td]:px-4 [&_td]:py-4 [&_td]:align-middle min-w-[1100px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Nome</TableHead>
