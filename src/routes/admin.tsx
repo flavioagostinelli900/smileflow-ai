@@ -162,7 +162,9 @@ function AdminPanel() {
         const cur = map.get(a.admin_user_id);
         if (cur && !cur.studio_ids.includes(a.studio_id)) cur.studio_ids.push(a.studio_id);
       });
-      return Array.from(map.values());
+      const all = Array.from(map.values());
+      return isSuperAdmin ? all : all.filter((s) => !s.roles.includes("super_admin"));
+
     },
   });
 
