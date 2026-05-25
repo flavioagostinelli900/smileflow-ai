@@ -322,15 +322,19 @@ function AdminPanel() {
   };
 
   const saveStaff = async () => {
-    if (!isSuperAdmin) return toast.error("Solo Super Admin può gestire lo staff");
+    const canCreate = isSuperAdmin || isAuthorizedAdmin;
+    if (!canCreate) return toast.error("Permessi insufficienti");
     setSavingStaff(true);
     try {
       // === CREAZIONE NUOVO MEMBRO STAFF ===
       if (!editStaff) {
         if (!staffName.trim()) { toast.error("Nome e cognome obbligatori"); return; }
         if (!staffEmail.trim()) { toast.error("Email obbligatoria"); return; }
-        if (staffRole !== "authorized_admin" && staffRole !== "support") {
-          toast.error("Ruolo non valido per la creazione"); return;
+        const allowed: AppRole[] = isSuperAdmin
+          ? ["super_admin", "authorized_admin", "support"]
+          : ["authorized_admin", "support"];
+        if (!allowed.includes(staffRole)) {
+          toast.error("Ruolo non consentito"); return;
         }
         const tempPassword = generateTempPassword(12);
         try {
@@ -339,10 +343,11 @@ function AdminPanel() {
               email: staffEmail.trim(),
               password: tempPassword,
               full_name: staffName.trim(),
-              role: staffRole as "authorized_admin" | "support",
+              role: staffRole as "super_admin" | "authorized_admin" | "support",
               studio_ids: staffStudios,
             },
           });
+
         } catch (e: any) {
           toast.error(e?.message ?? "Errore creazione membro staff");
           return;
