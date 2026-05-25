@@ -1,10 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
 import "@tanstack/react-start";
 import { generateText } from "ai";
+import { z } from "zod";
 import { createLovableAiGatewayProvider } from "@/lib/ai-gateway";
 import { authenticateRequest, genericError } from "@/lib/api-auth";
 
-type ChatMsg = { role: "user" | "assistant"; content: string };
+const MessageSchema = z.object({
+  role: z.enum(["user", "assistant"]),
+  content: z.string().min(1).max(4000),
+});
+
+const BodySchema = z.object({
+  messages: z.array(MessageSchema).min(1).max(50),
+});
 
 export const Route = createFileRoute("/api/sofia")({
   server: {
@@ -14,10 +22,16 @@ export const Route = createFileRoute("/api/sofia")({
           const auth = await authenticateRequest(request);
           if (!auth.ok) return auth.response;
 
-          const { messages } = (await request.json()) as { messages: ChatMsg[] };
-          if (!Array.isArray(messages)) {
-            return new Response("messages required", { status: 400 });
+          const json = await request.json().catch(() => null);
+          const parsed = BodySchema.safeParse(json);
+          if (!parsed.success) {
+            return new Response(
+              JSON.stringify({ error: "INVALID_INPUT" }),
+              { status: 400, headers: { "content-type": "application/json" } },
+            );
           }
+          const { messages } = parsed.data;
+
           const key = process.env.LOVABLE_API_KEY;
           if (!key) return genericError();
 
@@ -48,4 +62,3 @@ export const Route = createFileRoute("/api/sofia")({
     },
   },
 });
-
