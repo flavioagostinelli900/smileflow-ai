@@ -86,6 +86,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "DentAI" },
+      { name: "twitter:description", content: "Piattaforma AI per studi dentistici" },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/8535436d-8f7d-4a04-a457-126916116929/id-preview-335f1760--d8bb6a62-c64c-4167-84f6-a3a1fb847eff.lovable.app-1779743140443.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/8535436d-8f7d-4a04-a457-126916116929/id-preview-335f1760--d8bb6a62-c64c-4167-84f6-a3a1fb847eff.lovable.app-1779743140443.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
