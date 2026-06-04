@@ -2,15 +2,13 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Fragment, useMemo, useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
-import { Plus, Clock, Users } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { Plus, Clock, ChevronLeft, ChevronRight, CalendarIcon, TrendingUp } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { api, type Operator, type Appointment, type Client, type StudioSettings } from "@/lib/api";
-import { PATIENT_GROUP_EMOJI, PATIENT_GROUP_LABEL } from "@/lib/age";
+import { api, type Appointment, type Client, type Operator } from "@/lib/api";
 
 export const Route = createFileRoute("/bookings")({
   component: Bookings,
@@ -18,21 +16,13 @@ export const Route = createFileRoute("/bookings")({
 });
 
 const HOURS = ["09:00", "10:00", "11:00", "12:00", "15:00", "16:00", "17:00", "18:00"];
-const DAY_LABELS = ["Dom", "Lun", "Mar", "Mer", "Gio", "Ven", "Sab"];
-
-const OP_PALETTE: { bg: string; dot: string }[] = [
-  { bg: "bg-info/15 text-info border-info/30", dot: "bg-info" },
-  { bg: "bg-success/15 text-success border-success/30", dot: "bg-success" },
-  { bg: "bg-warning/20 text-warning-foreground border-warning/40", dot: "bg-warning" },
-  { bg: "bg-accent text-accent-foreground border-primary/30", dot: "bg-primary" },
-  { bg: "bg-destructive/15 text-destructive border-destructive/30", dot: "bg-destructive" },
-  { bg: "bg-muted text-foreground border-border", dot: "bg-muted-foreground" },
-];
-const paletteFor = (i: number) => OP_PALETTE[i % OP_PALETTE.length];
-
-const ALL = "__all__";
+const DAY_LABELS = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"];
 
 type ApptRow = Appointment & { client: Client | null; operator: Operator | null };
+
+// Sources considered "imported / synced from gestionale" → gray
+const IMPORTED_SOURCES = new Set(["import", "sync", "gestionale", "external", "pms"]);
+const isImported = (a: ApptRow) => !!a.source && IMPORTED_SOURCES.has(a.source.toLowerCase());
 
 function startOfWeek(d: Date) {
   const x = new Date(d); x.setHours(0, 0, 0, 0);
@@ -43,38 +33,18 @@ function startOfWeek(d: Date) {
 }
 
 function Bookings() {
-  const [selectedOp, setSelectedOp] = useState<string>(ALL);
+  const [anchor, setAnchor] = useState<Date>(() => new Date());
+  const [pickerOpen, setPickerOpen] = useState(false);
 
-  const weekStart = useMemo(() => startOfWeek(new Date()), []);
-  const weekEnd = useMemo(() => {
-    const d = new Date(weekStart); d.setDate(d.getDate() + 5); return d;
-  }, [weekStart]);
-
-  const days = useMemo(() => Array.from({ length: 5 }, (_, i) => {
+  const weekStart = useMemo(() => startOfWeek(anchor), [anchor]);
+  const days = useMemo(() => Array.from({ length: 7 }, (_, i) => {
     const d = new Date(weekStart); d.setDate(d.getDate() + i);
-    return { date: d, key: d.toISOString().slice(0, 10), label: `${DAY_LABELS[d.getDay()]} ${d.getDate()}` };
+    return { date: d, key: d.toISOString().slice(0, 10), label: `${DAY_LABELS[i]} ${d.getDate()}` };
   }), [weekStart]);
-
-  const { data: ops = [] } = useQuery({
-    queryKey: ["operators"],
-    queryFn: async () => {
-      const { data, error } = await api.operators();
-      if (error) throw error;
-      return data as Operator[];
-    },
-  });
-
-  const { data: settings } = useQuery({
-    queryKey: ["studio-settings"],
-    queryFn: async () => {
-      const { data, error } = await api.studioSettings();
-      if (error) throw error;
-      return data as StudioSettings | null;
-    },
-  });
+  const weekEnd = days[6].date;
 
   const { data: appts = [] } = useQuery({
-    queryKey: ["appointments", weekStart.toISOString(), weekEnd.toISOString()],
+    queryKey: ["appointments"],
     queryFn: async () => {
       const { data, error } = await api.appointments();
       if (error) throw error;
@@ -82,13 +52,6 @@ function Bookings() {
     },
   });
 
-  const opMeta = useMemo(() => {
-    const m = new Map<string, { name: string; palette: { bg: string; dot: string } }>();
-    ops.forEach((o, i) => m.set(o.id, { name: o.name, palette: paletteFor(i) }));
-    return m;
-  }, [ops]);
-
-  // Bucket appointments by day-key + hour
   const bookingsByCell = useMemo(() => {
     const map = new Map<string, ApptRow[]>();
     for (const a of appts) {
@@ -103,113 +66,124 @@ function Bookings() {
     return map;
   }, [appts]);
 
-  const selectedOpName = selectedOp === ALL ? null : opMeta.get(selectedOp)?.name ?? null;
-  const title = selectedOpName ? `Prenotazioni — ${selectedOpName}` : "Prenotazioni";
+  const platformThisMonth = useMemo(() => {
+    const now = new Date();
+    const y = now.getFullYear(); const m = now.getMonth();
+    return appts.filter((a) => {
+      const d = new Date(a.starts_at);
+      return d.getFullYear() === y && d.getMonth() === m && !isImported(a);
+    }).length;
+  }, [appts]);
 
-  const visitTypes = settings?.visit_types ?? [];
+  const shiftWeek = (delta: number) => {
+    const d = new Date(anchor); d.setDate(d.getDate() + delta * 7); setAnchor(d);
+  };
+
+  const monthFmt = weekStart.toLocaleDateString("it", { month: "long", year: "numeric" });
 
   return (
     <AppLayout>
-      <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
-        <div className="flex items-center gap-3 flex-wrap min-w-0">
-          <h2 className="text-xl font-semibold tracking-tight truncate">{title}</h2>
-          <Select value={selectedOp} onValueChange={setSelectedOp}>
-            <SelectTrigger className="w-[220px]">
-              <Users className="size-4 mr-1.5 text-muted-foreground" />
-              <SelectValue placeholder="Operatore" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ALL}>Tutti gli operatori</SelectItem>
-              {ops.map((o) => (
-                <SelectItem key={o.id} value={o.id}>
-                  {o.online ? "🟢" : "🔴"} {PATIENT_GROUP_EMOJI[o.patient_group ?? "all"]} {o.name}{!o.online && " — Non disponibile"}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        {selectedOp === ALL && ops.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {ops.map((o, i) => (
-              <div key={o.id} className={`flex items-center gap-1.5 text-xs ${o.online ? "text-muted-foreground" : "text-muted-foreground/50 line-through"}`}>
-                <span className={`size-2.5 rounded-full ${paletteFor(i).dot}`} />
-                <span>{o.name}</span>
-                {!o.online && <span className="not-italic no-underline">🔴</span>}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className="grid lg:grid-cols-4 gap-6">
-        <div className="lg:col-span-3">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="font-semibold">
-              Settimana {weekStart.getDate()} — {new Date(weekEnd.getTime() - 86400000).getDate()}{" "}
-              {weekStart.toLocaleDateString("it", { month: "long" })}
-            </h3>
-            <Button className="bg-gradient-primary" size="sm"><Plus className="size-4 mr-1.5" />Nuova prenotazione</Button>
-          </div>
-          <Card className="overflow-hidden">
-            <div className="grid grid-cols-[80px_repeat(5,1fr)] text-xs">
-              <div className="bg-muted/60 border-b border-r p-3" />
-              {days.map((d) => (
-                <div key={d.key} className="bg-muted/60 border-b border-r last:border-r-0 p-3 text-center font-medium">{d.label}</div>
-              ))}
-              {HOURS.map((h) => (
-                <Fragment key={h}>
-                  <div className="border-b border-r p-3 text-muted-foreground flex items-center gap-1 text-[11px]">
-                    <Clock className="size-3" />{h}
-                  </div>
-                  {days.map((d) => {
-                    const cell = bookingsByCell.get(`${d.key}-${h}`) ?? [];
-                    const visible = selectedOp === ALL ? cell : cell.filter((a) => a.operator_id === selectedOp);
-                    if (visible.length === 0) {
-                      return <div key={`${d.key}-${h}`} className="border-b border-r last:border-r-0 p-1.5 min-h-14" />;
-                    }
-                    return (
-                      <div key={`${d.key}-${h}`} className="border-b border-r last:border-r-0 p-1.5 min-h-14 space-y-1">
-                        {visible.map((a) => {
-                          const meta = a.operator_id ? opMeta.get(a.operator_id) : null;
-                          const tone = meta?.palette.bg ?? "bg-muted text-foreground border-border";
-                          const name = a.client ? `${a.client.first_name[0]}. ${a.client.last_name}` : "—";
-                          return (
-                            <div key={a.id} className={`rounded-md border px-2 py-1.5 text-[11px] ${tone}`}>
-                              <div className="font-medium">{name}</div>
-                              <div className="opacity-80">
-                                {a.visit_type}
-                                {selectedOp === ALL && meta && <> · {meta.name}</>}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    );
-                  })}
-                </Fragment>
-              ))}
+      {/* KPI */}
+      <div className="grid sm:grid-cols-3 gap-4 mb-6">
+        <Card className="p-5">
+          <div className="flex items-center gap-3">
+            <div className="size-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+              <TrendingUp className="size-5" />
             </div>
-          </Card>
-        </div>
+            <div>
+              <div className="text-xs text-muted-foreground">Prenotazioni generate questo mese</div>
+              <div className="text-2xl font-semibold tracking-tight">{platformThisMonth}</div>
+            </div>
+          </div>
+        </Card>
+      </div>
 
-        <div>
-          <h3 className="font-semibold mb-4">Tipologie visita</h3>
-          <Card className="divide-y">
-            {visitTypes.length === 0 ? (
-              <div className="p-4 text-xs text-muted-foreground">Nessuna tipologia configurata. Vai in Impostazioni.</div>
-            ) : visitTypes.map((v, i) => (
-              <div key={v.name} className="p-3 flex items-center gap-3">
-                <span className={`size-2.5 rounded-full ${paletteFor(i).dot}`} />
-                <div className="flex-1">
-                  <div className="text-sm font-medium">{v.name}</div>
-                  <div className="text-xs text-muted-foreground">{v.minutes} min{v.avg_price ? ` · €${v.avg_price}` : ""}</div>
-                </div>
-                {v.ai_booking && <Badge variant="outline" className="text-[10px]">AI</Badge>}
-              </div>
-            ))}
-          </Card>
+      {/* Toolbar */}
+      <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button variant="outline" size="sm" onClick={() => setAnchor(new Date())}>Oggi</Button>
+          <div className="flex items-center gap-1">
+            <Button variant="outline" size="icon" className="size-8" onClick={() => shiftWeek(-1)} aria-label="Settimana precedente">
+              <ChevronLeft className="size-4" />
+            </Button>
+            <Button variant="outline" size="icon" className="size-8" onClick={() => shiftWeek(1)} aria-label="Settimana successiva">
+              <ChevronRight className="size-4" />
+            </Button>
+          </div>
+          <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2">
+                <CalendarIcon className="size-4" />
+                <span className="capitalize">{monthFmt}</span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={anchor}
+                onSelect={(d) => { if (d) { setAnchor(d); setPickerOpen(false); } }}
+                weekStartsOn={1}
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+          <div className="text-sm text-muted-foreground ml-2">
+            {weekStart.getDate()} {weekStart.toLocaleDateString("it", { month: "short" })} — {weekEnd.getDate()} {weekEnd.toLocaleDateString("it", { month: "short" })}
+          </div>
+        </div>
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-sm bg-primary" /> Piattaforma</span>
+            <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-sm bg-muted-foreground/40" /> Gestionale</span>
+          </div>
+          <Button className="bg-gradient-primary" size="sm"><Plus className="size-4 mr-1.5" />Nuova prenotazione</Button>
         </div>
       </div>
+
+      {/* Calendar */}
+      <Card className="overflow-hidden">
+        <div className="grid grid-cols-[80px_repeat(7,1fr)] text-xs">
+          <div className="bg-muted/60 border-b border-r p-3" />
+          {days.map((d) => {
+            const isToday = d.key === new Date().toISOString().slice(0, 10);
+            return (
+              <div key={d.key} className={cn("bg-muted/60 border-b border-r last:border-r-0 p-3 text-center font-medium", isToday && "text-primary")}>
+                {d.label}
+              </div>
+            );
+          })}
+          {HOURS.map((h) => (
+            <Fragment key={h}>
+              <div className="border-b border-r p-3 text-muted-foreground flex items-center gap-1 text-[11px]">
+                <Clock className="size-3" />{h}
+              </div>
+              {days.map((d) => {
+                const cell = bookingsByCell.get(`${d.key}-${h}`) ?? [];
+                if (cell.length === 0) {
+                  return <div key={`${d.key}-${h}`} className="border-b border-r last:border-r-0 p-1.5 min-h-14" />;
+                }
+                return (
+                  <div key={`${d.key}-${h}`} className="border-b border-r last:border-r-0 p-1.5 min-h-14 space-y-1">
+                    {cell.map((a) => {
+                      const imported = isImported(a);
+                      const tone = imported
+                        ? "bg-muted text-foreground border-border"
+                        : "bg-primary/10 text-primary border-primary/30";
+                      const name = a.client ? `${a.client.first_name[0]}. ${a.client.last_name}` : "—";
+                      return (
+                        <div key={a.id} className={cn("rounded-md border px-2 py-1.5 text-[11px]", tone)}>
+                          <div className="font-medium truncate">{name}</div>
+                          <div className="opacity-80 truncate">{a.visit_type}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </Fragment>
+          ))}
+        </div>
+      </Card>
     </AppLayout>
   );
 }
