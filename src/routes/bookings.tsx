@@ -5,9 +5,40 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { Plus, Clock, ChevronLeft, ChevronRight, CalendarIcon, TrendingUp } from "lucide-react";
+import {
+  Plus,
+  Clock,
+  ChevronLeft,
+  ChevronRight,
+  CalendarIcon,
+  TrendingUp,
+  Phone,
+  User as UserIcon,
+  Stethoscope,
+  FileText,
+  Pencil,
+  Move,
+  XCircle,
+  ExternalLink,
+} from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 import { api, type Appointment, type Client, type Operator } from "@/lib/api";
 
 export const Route = createFileRoute("/bookings")({
@@ -20,28 +51,35 @@ const DAY_LABELS = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"];
 
 type ApptRow = Appointment & { client: Client | null; operator: Operator | null };
 
-// Sources considered "imported / synced from gestionale" → gray
 const IMPORTED_SOURCES = new Set(["import", "sync", "gestionale", "external", "pms"]);
 const isImported = (a: ApptRow) => !!a.source && IMPORTED_SOURCES.has(a.source.toLowerCase());
 
 function startOfWeek(d: Date) {
   const x = new Date(d); x.setHours(0, 0, 0, 0);
-  const day = x.getDay(); // 0=Sun
-  const diff = day === 0 ? -6 : 1 - day; // Monday
+  const day = x.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
   x.setDate(x.getDate() + diff);
   return x;
 }
 
+function fmtTime(d: Date) {
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
 function Bookings() {
+  const navigate = useNavigate();
   const [anchor, setAnchor] = useState<Date>(() => new Date());
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [operatorFilter, setOperatorFilter] = useState<string>("all");
+  const [selected, setSelected] = useState<ApptRow | null>(null);
 
   const weekStart = useMemo(() => startOfWeek(anchor), [anchor]);
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => {
     const d = new Date(weekStart); d.setDate(d.getDate() + i);
-    return { date: d, key: d.toISOString().slice(0, 10), label: `${DAY_LABELS[i]} ${d.getDate()}` };
+    return { date: d, key: d.toISOString().slice(0, 10), label: DAY_LABELS[i], num: d.getDate() };
   }), [weekStart]);
   const weekEnd = days[6].date;
+  const todayKey = new Date().toISOString().slice(0, 10);
 
   const { data: appts = [] } = useQuery({
     queryKey: ["appointments"],
@@ -52,9 +90,23 @@ function Bookings() {
     },
   });
 
+  const { data: operators = [] } = useQuery({
+    queryKey: ["operators"],
+    queryFn: async () => {
+      const { data, error } = await api.operators();
+      if (error) throw error;
+      return (data ?? []) as Operator[];
+    },
+  });
+
+  const filteredAppts = useMemo(
+    () => operatorFilter === "all" ? appts : appts.filter((a) => a.operator_id === operatorFilter),
+    [appts, operatorFilter],
+  );
+
   const bookingsByCell = useMemo(() => {
     const map = new Map<string, ApptRow[]>();
-    for (const a of appts) {
+    for (const a of filteredAppts) {
       const d = new Date(a.starts_at);
       const dayKey = d.toISOString().slice(0, 10);
       const hour = `${String(d.getHours()).padStart(2, "0")}:00`;
@@ -64,7 +116,7 @@ function Bookings() {
       map.set(key, arr);
     }
     return map;
-  }, [appts]);
+  }, [filteredAppts]);
 
   const platformThisMonth = useMemo(() => {
     const now = new Date();
@@ -81,10 +133,13 @@ function Bookings() {
 
   const monthFmt = weekStart.toLocaleDateString("it", { month: "long", year: "numeric" });
 
+  const selStart = selected ? new Date(selected.starts_at) : null;
+  const selEnd = selStart && selected ? new Date(selStart.getTime() + selected.duration_minutes * 60000) : null;
+
   return (
     <AppLayout>
       {/* KPI */}
-      <div className="grid sm:grid-cols-3 gap-4 mb-6">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <Card className="p-5">
           <div className="flex items-center gap-3">
             <div className="size-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
@@ -95,6 +150,21 @@ function Bookings() {
               <div className="text-2xl font-semibold tracking-tight">{platformThisMonth}</div>
             </div>
           </div>
+        </Card>
+        <Card className="p-5 opacity-60">
+          <div className="text-xs text-muted-foreground">Valore generato</div>
+          <div className="text-2xl font-semibold tracking-tight mt-1">—</div>
+          <div className="text-[11px] text-muted-foreground mt-1">In arrivo</div>
+        </Card>
+        <Card className="p-5 opacity-60">
+          <div className="text-xs text-muted-foreground">Crescita vs mese precedente</div>
+          <div className="text-2xl font-semibold tracking-tight mt-1">—</div>
+          <div className="text-[11px] text-muted-foreground mt-1">In arrivo</div>
+        </Card>
+        <Card className="p-5 opacity-60">
+          <div className="text-xs text-muted-foreground">Tasso di conferma</div>
+          <div className="text-2xl font-semibold tracking-tight mt-1">—</div>
+          <div className="text-[11px] text-muted-foreground mt-1">In arrivo</div>
         </Card>
       </div>
 
@@ -132,6 +202,17 @@ function Bookings() {
           </div>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
+          <Select value={operatorFilter} onValueChange={setOperatorFilter}>
+            <SelectTrigger className="h-9 w-[200px]">
+              <SelectValue placeholder="Operatore" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tutti gli operatori</SelectItem>
+              {operators.map((o) => (
+                <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-sm bg-primary" /> Piattaforma</span>
             <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-sm bg-muted-foreground/40" /> Gestionale</span>
@@ -143,12 +224,18 @@ function Bookings() {
       {/* Calendar */}
       <Card className="overflow-hidden">
         <div className="grid grid-cols-[80px_repeat(7,1fr)] text-xs">
-          <div className="bg-muted/60 border-b border-r p-3" />
+          <div className="bg-muted/60 border-b border-r p-2" />
           {days.map((d) => {
-            const isToday = d.key === new Date().toISOString().slice(0, 10);
+            const isToday = d.key === todayKey;
             return (
-              <div key={d.key} className={cn("bg-muted/60 border-b border-r last:border-r-0 p-3 text-center font-medium", isToday && "text-primary")}>
-                {d.label}
+              <div key={d.key} className="bg-muted/60 border-b border-r last:border-r-0 p-2 text-center">
+                <div className={cn(
+                  "inline-flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg font-medium",
+                  isToday && "bg-primary/10",
+                )}>
+                  <span>{d.label}</span>
+                  <span className="text-sm">{d.num}</span>
+                </div>
               </div>
             );
           })}
@@ -160,21 +247,31 @@ function Bookings() {
               {days.map((d) => {
                 const cell = bookingsByCell.get(`${d.key}-${h}`) ?? [];
                 if (cell.length === 0) {
-                  return <div key={`${d.key}-${h}`} className="border-b border-r last:border-r-0 p-1.5 min-h-14" />;
+                  return <div key={`${d.key}-${h}`} className="border-b border-r last:border-r-0 p-1.5 min-h-20" />;
                 }
                 return (
-                  <div key={`${d.key}-${h}`} className="border-b border-r last:border-r-0 p-1.5 min-h-14 space-y-1">
+                  <div key={`${d.key}-${h}`} className="border-b border-r last:border-r-0 p-1.5 min-h-20 space-y-1">
                     {cell.map((a) => {
                       const imported = isImported(a);
                       const tone = imported
-                        ? "bg-muted text-foreground border-border"
-                        : "bg-primary/10 text-primary border-primary/30";
-                      const name = a.client ? `${a.client.first_name[0]}. ${a.client.last_name}` : "—";
+                        ? "bg-muted hover:bg-muted/80 text-foreground border-border"
+                        : "bg-primary/10 hover:bg-primary/15 text-primary border-primary/30";
+                      const start = new Date(a.starts_at);
+                      const end = new Date(start.getTime() + a.duration_minutes * 60000);
+                      const name = a.client ? `${a.client.first_name} ${a.client.last_name}` : "—";
                       return (
-                        <div key={a.id} className={cn("rounded-md border px-2 py-1.5 text-[11px]", tone)}>
+                        <button
+                          key={a.id}
+                          onClick={() => setSelected(a)}
+                          className={cn(
+                            "w-full text-left rounded-md border px-2 py-1.5 text-[11px] transition-colors",
+                            tone,
+                          )}
+                        >
                           <div className="font-medium truncate">{name}</div>
                           <div className="opacity-80 truncate">{a.visit_type}</div>
-                        </div>
+                          <div className="opacity-70 mt-0.5">{fmtTime(start)} - {fmtTime(end)}</div>
+                        </button>
                       );
                     })}
                   </div>
@@ -184,6 +281,64 @@ function Bookings() {
           ))}
         </div>
       </Card>
+
+      {/* Appointment detail */}
+      <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
+        <DialogContent className="max-w-lg">
+          {selected && selStart && selEnd && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Dettaglio appuntamento</DialogTitle>
+                <DialogDescription>
+                  {isImported(selected) ? "Sincronizzato dal gestionale" : "Generato dalla piattaforma"}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-3 text-sm">
+                <Row icon={UserIcon} label="Paziente"
+                  value={selected.client ? `${selected.client.first_name} ${selected.client.last_name}` : "—"} />
+                <Row icon={Phone} label="Telefono" value={selected.client?.phone ?? "—"} />
+                <Row icon={UserIcon} label="Operatore" value={selected.operator?.name ?? "Non assegnato"} />
+                <Row icon={CalendarIcon} label="Data"
+                  value={selStart.toLocaleDateString("it", { weekday: "long", day: "numeric", month: "long", year: "numeric" })} />
+                <Row icon={Clock} label="Orario"
+                  value={`${fmtTime(selStart)} - ${fmtTime(selEnd)} · ${selected.duration_minutes} min`} />
+                <Row icon={Stethoscope} label="Tipologia" value={selected.visit_type} />
+                <Row icon={FileText} label="Origine"
+                  value={isImported(selected) ? "Gestionale" : "Piattaforma"} />
+                {selected.notes && <Row icon={FileText} label="Note" value={selected.notes} />}
+              </div>
+              <DialogFooter className="flex-wrap gap-2 sm:gap-2">
+                <Button variant="outline" size="sm"><Pencil className="size-4 mr-1.5" />Modifica</Button>
+                <Button variant="outline" size="sm"><Move className="size-4 mr-1.5" />Sposta</Button>
+                <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
+                  <XCircle className="size-4 mr-1.5" />Annulla
+                </Button>
+                {selected.client_id && (
+                  <Button variant="outline" size="sm"
+                    onClick={() => { const id = selected.client_id!; setSelected(null); navigate({ to: "/clients/$clientId", params: { clientId: id } }); }}>
+                    <ExternalLink className="size-4 mr-1.5" />Scheda paziente
+                  </Button>
+                )}
+                <Button size="sm" onClick={() => setSelected(null)}>Chiudi</Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </AppLayout>
+  );
+}
+
+function Row({ icon: Icon, label, value }: { icon: typeof Clock; label: string; value: string }) {
+  return (
+    <div className="flex items-start gap-3">
+      <div className="size-8 rounded-md bg-muted flex items-center justify-center shrink-0">
+        <Icon className="size-4 text-muted-foreground" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</div>
+        <div className="font-medium break-words">{value}</div>
+      </div>
+    </div>
   );
 }
